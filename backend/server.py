@@ -48,7 +48,18 @@ logger.info("Google Drive integration disabled - using local backups only")
 
 # Create the main app without a prefix
 app = FastAPI()
+from starlette.middleware.cors import CORSMiddleware
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://master-faster.vercel.app",
+        "http://localhost:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 

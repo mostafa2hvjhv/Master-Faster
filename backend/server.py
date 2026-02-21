@@ -1380,7 +1380,9 @@ async def create_invoice(invoice: InvoiceCreate, supervisor_name: str = "", comp
                 description=f"فاتورة {invoice_number} - {invoice.customer_name}",
                 reference=f"invoice_{invoice_obj.id}"
             )
-            await db.treasury_transactions.insert_one(treasury_transaction.dict())
+            treasury_dict = treasury_transaction.dict()
+            treasury_dict["company_id"] = company_id
+            await db.treasury_transactions.insert_one(treasury_dict)
     
     # Add to daily work order automatically
     try:
@@ -1725,7 +1727,9 @@ async def create_payment(payment: PaymentCreate, company_id: str = "elsawy"):
             description=f"دفع فاتورة {invoice['invoice_number']} - {invoice['customer_name']}",
             reference=f"payment_{payment_obj.id}"
         )
-        await db.treasury_transactions.insert_one(treasury_transaction.dict())
+        treasury_dict = treasury_transaction.dict()
+        treasury_dict["company_id"] = company_id
+        await db.treasury_transactions.insert_one(treasury_dict)
         
         # For deferred invoices, also create a deduction from deferred account
         if invoice.get("payment_method") == "آجل":
@@ -1736,7 +1740,9 @@ async def create_payment(payment: PaymentCreate, company_id: str = "elsawy"):
                 description=f"تسديد آجل فاتورة {invoice['invoice_number']} - {invoice['customer_name']}",
                 reference=f"payment_{payment_obj.id}_deferred"
             )
-            await db.treasury_transactions.insert_one(deferred_transaction.dict())
+            deferred_dict = deferred_transaction.dict()
+            deferred_dict["company_id"] = company_id
+            await db.treasury_transactions.insert_one(deferred_dict)
     
     payment_data = payment_obj.dict()
     payment_data["company_id"] = company_id
@@ -2062,7 +2068,7 @@ async def create_treasury_transaction(transaction: TreasuryTransactionCreate, co
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/treasury/transfer")
-async def transfer_funds(transfer: TransferRequest):
+async def transfer_funds(transfer: TransferRequest, company_id: str = "elsawy"):
     """Transfer funds between accounts"""
     try:
         # Create outgoing transaction
@@ -2087,9 +2093,13 @@ async def transfer_funds(transfer: TransferRequest):
         # Link transactions
         out_transaction.related_transaction_id = in_transaction.id
         
-        # Save both transactions
-        await db.treasury_transactions.insert_one(out_transaction.dict())
-        await db.treasury_transactions.insert_one(in_transaction.dict())
+        # Save both transactions with company_id
+        out_dict = out_transaction.dict()
+        out_dict["company_id"] = company_id
+        in_dict = in_transaction.dict()
+        in_dict["company_id"] = company_id
+        await db.treasury_transactions.insert_one(out_dict)
+        await db.treasury_transactions.insert_one(in_dict)
         
         return {"message": "تم التحويل بنجاح", "transfer_id": out_transaction.id}
         
@@ -2565,7 +2575,9 @@ async def pay_supplier(supplier_id: str, amount: float, payment_method: str = "c
             description=f"دفع للمورد {supplier['name']}",
             reference=f"supplier_payment_{supplier_transaction.id}"
         )
-        await db.treasury_transactions.insert_one(treasury_transaction.dict())
+        treasury_dict = treasury_transaction.dict()
+        treasury_dict["company_id"] = supplier.get("company_id", "elsawy")
+        await db.treasury_transactions.insert_one(treasury_dict)
         
         return {"message": "تم دفع المبلغ للمورد بنجاح", "payment_id": supplier_transaction.id}
     except Exception as e:
@@ -2958,7 +2970,9 @@ async def change_invoice_payment_method(
                 reference=f"تحويل-{invoice.get('invoice_number')}",
                 balance=invoice_amount
             )
-            await db.treasury_transactions.insert_one(new_transaction.dict())
+            new_dict = new_transaction.dict()
+            new_dict["company_id"] = invoice.get("company_id", "elsawy")
+            await db.treasury_transactions.insert_one(new_dict)
             
         elif old_payment_method != "آجل" and new_payment_method == "آجل":
             # Converting from immediate payment to deferred - only create negative transaction
@@ -2970,7 +2984,9 @@ async def change_invoice_payment_method(
                 reference=f"تحويل-{invoice.get('invoice_number')}",
                 balance=-invoice_amount
             )
-            await db.treasury_transactions.insert_one(old_transaction.dict())
+            old_dict = old_transaction.dict()
+            old_dict["company_id"] = invoice.get("company_id", "elsawy")
+            await db.treasury_transactions.insert_one(old_dict)
             
         else:
             # Converting between immediate payment methods
@@ -2983,7 +2999,9 @@ async def change_invoice_payment_method(
                 reference=f"تحويل-{invoice.get('invoice_number')}",
                 balance=-invoice_amount
             )
-            await db.treasury_transactions.insert_one(old_transaction.dict())
+            old_dict2 = old_transaction.dict()
+            old_dict2["company_id"] = invoice.get("company_id", "elsawy")
+            await db.treasury_transactions.insert_one(old_dict2)
             
             # Add to new account (positive transaction) 
             new_transaction = TreasuryTransaction(
@@ -2994,7 +3012,9 @@ async def change_invoice_payment_method(
                 reference=f"تحويل-{invoice.get('invoice_number')}",
                 balance=invoice_amount
             )
-            await db.treasury_transactions.insert_one(new_transaction.dict())
+            new_dict2 = new_transaction.dict()
+            new_dict2["company_id"] = invoice.get("company_id", "elsawy")
+            await db.treasury_transactions.insert_one(new_dict2)
         
         # Update invoice payment method and remaining amount based on conversion type
         update_data = {"payment_method": new_payment_method}

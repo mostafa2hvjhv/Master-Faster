@@ -2693,7 +2693,8 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
       const response = await axios.post(`${API}/invoices?supervisor_name=${encodeURIComponent(supervisorName)}`, invoiceData);
 
       if (response.data) {
-        alert('تم إنشاء الفاتورة بنجاح');
+        // طباعة الفاتورة أولاً (قبل مسح البيانات وقبل أي alert لتجنب حظر النافذة المنبثقة)
+        printInvoice(response.data);
 
         // مسح البيانات
         setItems([]);
@@ -2705,9 +2706,6 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
         setDiscount(0);
         setDiscountType('amount');
         setClientType(1); // إعادة تعيين نوع العميل
-
-        // طباعة الفاتورة
-        printInvoice(response.data);
       }
     } catch (error) {
       console.error('Error creating invoice:', error);

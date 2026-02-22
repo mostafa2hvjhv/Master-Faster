@@ -8439,13 +8439,14 @@ const WorkOrders = () => {
 // Treasury Management Component
 const Treasury = () => {
   const { user } = useAuth(); // للحصول على معلومات المستخدم الحالي
+  const yadElsawyName = user?.username === 'Faster' ? 'خزنه مؤقته' : 'يد الصاوي';
   const [accounts, setAccounts] = useState([
     { id: 'cash', name: 'نقدي', balance: 0, transactions: [] },
     { id: 'vodafone_elsawy', name: 'فودافون 010', balance: 0, transactions: [] },
     { id: 'vodafone_wael', name: 'كاش 0100', balance: 0, transactions: [] },
     { id: 'deferred', name: 'آجل', balance: 0, transactions: [] },
     { id: 'instapay', name: 'انستاباي', balance: 0, transactions: [] },
-    { id: 'yad_elsawy', name: 'يد الصاوي', balance: 0, transactions: [] }
+    { id: 'yad_elsawy', name: yadElsawyName, balance: 0, transactions: [] }
   ]);
 
   const [selectedAccount, setSelectedAccount] = useState('cash');
@@ -8785,9 +8786,9 @@ const Treasury = () => {
     }
   };
 
-  // Treasury Reset Function - Only for Elsawy
+  // Treasury Reset Function - Only for Elsawy and Faster
   const resetTreasury = async () => {
-    if (user?.username !== 'Elsawy') {
+    if (user?.username !== 'Elsawy' && user?.username !== 'Faster') {
       alert('غير مصرح لك بتنفيذ هذه العملية');
       return;
     }
@@ -8848,18 +8849,18 @@ const Treasury = () => {
             className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
             طباعة تقرير
           </button>
-          {user?.username === 'Elsawy' && (
+          {(user?.username === 'Elsawy' || user?.username === 'Faster') && (
             <button
               onClick={resetTreasury}
               className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 font-bold border-2 border-red-800">
               ⚠️ مسح الخزينة بالكامل
             </button>
           )}
-          {user?.username === 'Elsawy' && selectedAccount === 'yad_elsawy' && selectedAccountData?.balance > 0 && (
+          {(user?.username === 'Elsawy' || user?.username === 'Faster') && selectedAccount === 'yad_elsawy' && selectedAccountData?.balance > 0 && (
             <button
               onClick={() => clearAccount(selectedAccount)}
               className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-              تصفير حساب يد الصاوي
+              تصفير حساب {yadElsawyName}
             </button>
           )}
         </div>

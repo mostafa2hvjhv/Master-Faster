@@ -2868,7 +2868,7 @@ async def reset_treasury(username: str):
     """Reset all treasury data - Only for Elsawy user"""
     try:
         # Security check - only Elsawy can perform this operation
-        if username != "Elsawy":
+        if username not in ["Elsawy", "Faster"]:
             raise HTTPException(status_code=403, detail="غير مصرح لك بتنفيذ هذه العملية")
         
         # Get count of records before deletion for logging
@@ -4735,7 +4735,7 @@ async def bulk_delete_invoices_by_date(date: str, password: str, username: str):
     """Delete all invoices of a specific date - Elsawy only with password"""
     try:
         # Security checks
-        if username != "Elsawy":
+        if username not in ["Elsawy", "Faster"]:
             raise HTTPException(status_code=403, detail="غير مصرح لك بتنفيذ هذه العملية")
         
         if password != "200200":
@@ -4862,7 +4862,7 @@ async def bulk_delete_last_invoices(count: int, password: str, username: str):
     """Delete last N invoices - Elsawy only with password"""
     try:
         # Security checks
-        if username != "Elsawy":
+        if username not in ["Elsawy", "Faster"]:
             raise HTTPException(status_code=403, detail="غير مصرح لك بتنفيذ هذه العملية")
         
         if password != "200200":

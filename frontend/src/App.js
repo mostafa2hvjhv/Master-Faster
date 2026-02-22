@@ -48,11 +48,24 @@ const useAuth = () => {
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [appSettings, setAppSettings] = useState({ currency: 'ج.م', invoice_language: 'ar' });
+
+  const fetchAppSettings = async () => {
+    try {
+      const res = await axios.get(`${API}/settings`);
+      setAppSettings(prev => ({
+        ...prev,
+        currency: res.data.currency || 'ج.م',
+        invoice_language: res.data.invoice_language || 'ar'
+      }));
+    } catch (e) { console.error('Settings fetch error:', e); }
+  };
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
+      fetchAppSettings();
     }
     setIsLoading(false);
   }, []);
@@ -66,6 +79,7 @@ const AuthProvider = ({ children }) => {
       if (response.data.success) {
         setUser(response.data.user);
         localStorage.setItem('user', JSON.stringify(response.data.user));
+        fetchAppSettings();
         return true;
       }
       return false;
@@ -100,7 +114,7 @@ const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, appSettings, setAppSettings, fetchAppSettings }}>
       {children}
     </AuthContext.Provider>
   );
@@ -1155,7 +1169,8 @@ const Inventory = () => {
 
 // Local Products Management Component
 const Local = () => {
-  const { user } = useAuth();
+  const { user, appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [suppliers, setSuppliers] = useState([]);
   const [localProducts, setLocalProducts] = useState([]);
   const [supplierTransactions, setSupplierTransactions] = useState([]);
@@ -1476,10 +1491,10 @@ const Local = () => {
                       <td className="border border-gray-300 p-2 font-semibold">{supplier.name}</td>
                       <td className="border border-gray-300 p-2">{supplier.phone || '-'}</td>
                       <td className="border border-gray-300 p-2">{supplier.address || '-'}</td>
-                      <td className="border border-gray-300 p-2">ج.م {(supplier.total_purchases || 0).toFixed(2)}</td>
-                      <td className="border border-gray-300 p-2">ج.م {(supplier.total_paid || 0).toFixed(2)}</td>
+                      <td className="border border-gray-300 p-2">{currency} {(supplier.total_purchases || 0).toFixed(2)}</td>
+                      <td className="border border-gray-300 p-2">{currency} {(supplier.total_paid || 0).toFixed(2)}</td>
                       <td className={`border border-gray-300 p-2 font-semibold ${(supplier.balance || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        ج.م {(supplier.balance || 0).toFixed(2)}
+                        {currency} {(supplier.balance || 0).toFixed(2)}
                       </td>
                       <td className="border border-gray-300 p-2">
                         <div className="flex space-x-2 space-x-reverse">
@@ -1578,8 +1593,8 @@ const Local = () => {
                     <tr key={product.id}>
                       <td className="border border-gray-300 p-2 font-semibold">{product.name}</td>
                       <td className="border border-gray-300 p-2">{product.supplier_name}</td>
-                      <td className="border border-gray-300 p-2">ج.م {product.purchase_price.toFixed(2)}</td>
-                      <td className="border border-gray-300 p-2">ج.م {product.selling_price.toFixed(2)}</td>
+                      <td className="border border-gray-300 p-2">{currency} {product.purchase_price.toFixed(2)}</td>
+                      <td className="border border-gray-300 p-2">{currency} {product.selling_price.toFixed(2)}</td>
                       <td className="border border-gray-300 p-2">{product.current_stock || 0}</td>
                       <td className="border border-gray-300 p-2">{product.total_sold || 0}</td>
                       <td className="border border-gray-300 p-2">
@@ -1646,7 +1661,7 @@ const Local = () => {
                     </td>
                     <td className={`border border-gray-300 p-2 font-semibold ${transaction.transaction_type === 'purchase' ? 'text-red-600' : 'text-green-600'
                       }`}>
-                      ج.م {transaction.amount.toFixed(2)}
+                      {currency} {transaction.amount.toFixed(2)}
                     </td>
                     <td className="border border-gray-300 p-2">{transaction.description}</td>
                     <td className="border border-gray-300 p-2">{transaction.product_name || '-'}</td>
@@ -1683,7 +1698,7 @@ const Local = () => {
               <option value="">اختر المورد</option>
               {suppliers.filter(s => (s.balance || 0) > 0).map(supplier => (
                 <option key={supplier.id} value={supplier.id}>
-                  {supplier.name} - مستحق: ج.م {(supplier.balance || 0).toFixed(2)}
+                  {supplier.name} - مستحق: {currency} {(supplier.balance || 0).toFixed(2)}
                 </option>
               ))}
             </select>
@@ -1720,7 +1735,8 @@ const Local = () => {
 
 // Dashboard Component
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
 
   // Only Elsawy and Faster can access dashboard
   if (user?.username !== 'Elsawy' && user?.username !== 'Faster') {
@@ -1791,19 +1807,19 @@ const Dashboard = () => {
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
             <td style="border: 1px solid #ddd; padding: 10px;"><strong>إجمالي المبيعات:</strong></td>
-            <td style="border: 1px solid #ddd; padding: 10px;">ج.م ${stats.total_sales.toFixed(2)}</td>
+            <td style="border: 1px solid #ddd; padding: 10px;">${currency} ${stats.total_sales.toFixed(2)}</td>
           </tr>
           <tr>
             <td style="border: 1px solid #ddd; padding: 10px;"><strong>إجمالي المصروفات:</strong></td>
-            <td style="border: 1px solid #ddd; padding: 10px;">ج.م ${stats.total_expenses.toFixed(2)}</td>
+            <td style="border: 1px solid #ddd; padding: 10px;">${currency} ${stats.total_expenses.toFixed(2)}</td>
           </tr>
           <tr>
             <td style="border: 1px solid #ddd; padding: 10px;"><strong>صافي الربح:</strong></td>
-            <td style="border: 1px solid #ddd; padding: 10px;">ج.م ${stats.net_profit.toFixed(2)}</td>
+            <td style="border: 1px solid #ddd; padding: 10px;">${currency} ${stats.net_profit.toFixed(2)}</td>
           </tr>
           <tr>
             <td style="border: 1px solid #ddd; padding: 10px;"><strong>المبالغ المستحقة:</strong></td>
-            <td style="border: 1px solid #ddd; padding: 10px;">ج.م ${stats.total_unpaid.toFixed(2)}</td>
+            <td style="border: 1px solid #ddd; padding: 10px;">${currency} ${stats.total_unpaid.toFixed(2)}</td>
           </tr>
           <tr>
             <td style="border: 1px solid #ddd; padding: 10px;"><strong>عدد الفواتير:</strong></td>
@@ -1868,7 +1884,7 @@ const Dashboard = () => {
             <div>
               <h3 className="text-lg font-semibold opacity-90">إجمالي المبيعات</h3>
               <p className="text-3xl font-bold mt-2">
-                ج.م {stats.total_sales.toFixed(2)}
+                {currency} {stats.total_sales.toFixed(2)}
               </p>
             </div>
             <div className="text-5xl opacity-30">💰</div>
@@ -1881,7 +1897,7 @@ const Dashboard = () => {
             <div>
               <h3 className="text-lg font-semibold opacity-90">إجمالي المصروفات</h3>
               <p className="text-3xl font-bold mt-2">
-                ج.م {stats.total_expenses.toFixed(2)}
+                {currency} {stats.total_expenses.toFixed(2)}
               </p>
             </div>
             <div className="text-5xl opacity-30">💸</div>
@@ -1894,7 +1910,7 @@ const Dashboard = () => {
             <div>
               <h3 className="text-lg font-semibold opacity-90">صافي الربح</h3>
               <p className="text-3xl font-bold mt-2">
-                ج.م {stats.net_profit.toFixed(2)}
+                {currency} {stats.net_profit.toFixed(2)}
               </p>
             </div>
             <div className="text-5xl opacity-30">📈</div>
@@ -1907,7 +1923,7 @@ const Dashboard = () => {
             <div>
               <h3 className="text-lg font-semibold opacity-90">المبالغ المستحقة</h3>
               <p className="text-3xl font-bold mt-2">
-                ج.م {stats.total_unpaid.toFixed(2)}
+                {currency} {stats.total_unpaid.toFixed(2)}
               </p>
             </div>
             <div className="text-5xl opacity-30">⏳</div>
@@ -1946,6 +1962,8 @@ const Dashboard = () => {
 
 // Daily Sales Report Component - كشف المبيعات اليومي
 const DailySalesReport = () => {
+  const { appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [reportData, setReportData] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
@@ -2057,7 +2075,7 @@ const DailySalesReport = () => {
             <div className="bg-yellow-100 border-2 border-yellow-500 rounded-xl p-6 text-center shadow-lg">
               <h3 className="text-lg font-semibold text-yellow-800 mb-2">مبيعات اليوم</h3>
               <p className="text-3xl font-bold text-yellow-700">
-                {formatNumber(reportData.summary.cash_sales + reportData.summary.deferred_sales)} ج.م
+                {formatNumber(reportData.summary.cash_sales + reportData.summary.deferred_sales)} {currency}
               </p>
               <p className="text-sm text-yellow-600 mt-2">
                 {reportData.details.invoices_count} فاتورة
@@ -2068,7 +2086,7 @@ const DailySalesReport = () => {
             <div className="bg-orange-100 border-2 border-orange-500 rounded-xl p-6 text-center shadow-lg">
               <h3 className="text-lg font-semibold text-orange-800 mb-2">💵 نقدي</h3>
               <p className="text-3xl font-bold text-orange-700">
-                {formatNumber(reportData.summary.cash_sales)} ج.م
+                {formatNumber(reportData.summary.cash_sales)} {currency}
               </p>
               <p className="text-sm text-orange-600 mt-2">مبيعات نقدية</p>
             </div>
@@ -2077,7 +2095,7 @@ const DailySalesReport = () => {
             <div className="bg-emerald-100 border-2 border-emerald-600 rounded-xl p-6 text-center shadow-lg">
               <h3 className="text-lg font-semibold text-emerald-800 mb-2">📝 آجل</h3>
               <p className="text-3xl font-bold text-emerald-700">
-                {formatNumber(reportData.summary.deferred_sales)} ج.م
+                {formatNumber(reportData.summary.deferred_sales)} {currency}
               </p>
               <p className="text-sm text-emerald-600 mt-2">مبيعات آجلة</p>
             </div>
@@ -2086,7 +2104,7 @@ const DailySalesReport = () => {
             <div className="bg-pink-100 border-2 border-pink-500 rounded-xl p-6 text-center shadow-lg">
               <h3 className="text-lg font-semibold text-pink-800 mb-2">💰 تحصيل من الآجل</h3>
               <p className="text-3xl font-bold text-pink-700">
-                {formatNumber(reportData.summary.deferred_collections)} ج.م
+                {formatNumber(reportData.summary.deferred_collections)} {currency}
               </p>
               <p className="text-sm text-pink-600 mt-2">محصل من فواتير سابقة</p>
             </div>
@@ -2098,7 +2116,7 @@ const DailySalesReport = () => {
             <div className="bg-blue-50 border-2 border-blue-400 rounded-xl p-6 text-center shadow-lg">
               <h3 className="text-lg font-semibold text-blue-800 mb-2">💵 تحصيل من الآجل نقدي</h3>
               <p className="text-3xl font-bold text-blue-700">
-                {formatNumber(reportData.summary.deferred_collections_cash)} ج.م
+                {formatNumber(reportData.summary.deferred_collections_cash)} {currency}
               </p>
             </div>
 
@@ -2106,7 +2124,7 @@ const DailySalesReport = () => {
             <div className="bg-red-50 border-2 border-red-400 rounded-xl p-6 text-center shadow-lg">
               <h3 className="text-lg font-semibold text-red-800 mb-2">📤 مصروفات</h3>
               <p className="text-3xl font-bold text-red-700">
-                {formatNumber(reportData.summary.total_expenses)} ج.م
+                {formatNumber(reportData.summary.total_expenses)} {currency}
               </p>
               <p className="text-sm text-red-600 mt-2">{reportData.details.expenses_count} مصروف</p>
             </div>
@@ -2115,7 +2133,7 @@ const DailySalesReport = () => {
             <div className="bg-gradient-to-r from-green-400 to-green-600 border-2 border-green-600 rounded-xl p-6 text-center shadow-lg">
               <h3 className="text-lg font-semibold text-white mb-2">✨ صافي الدخل اليومي</h3>
               <p className="text-3xl font-bold text-white">
-                {formatNumber(reportData.summary.net_daily_income)} ج.م
+                {formatNumber(reportData.summary.net_daily_income)} {currency}
               </p>
             </div>
           </div>
@@ -2137,7 +2155,7 @@ const DailySalesReport = () => {
                   <h4 className="text-sm font-semibold text-gray-700 mb-2">{account.label}</h4>
                   <p className={`text-xl font-bold ${account.daily_change >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
-                    {account.daily_change >= 0 ? '+' : ''}{formatNumber(account.daily_change)} ج.م
+                    {account.daily_change >= 0 ? '+' : ''}{formatNumber(account.daily_change)} {currency}
                   </p>
                 </div>
               ))}
@@ -2155,7 +2173,7 @@ const DailySalesReport = () => {
                   <div key={index} className="bg-purple-50 border-2 border-purple-300 rounded-xl p-4 text-center">
                     <h4 className="text-sm font-semibold text-purple-700 mb-2">{method}</h4>
                     <p className="text-xl font-bold text-purple-600">
-                      {formatNumber(amount)} ج.م
+                      {formatNumber(amount)} {currency}
                     </p>
                   </div>
                 ))}
@@ -2174,6 +2192,8 @@ const DailySalesReport = () => {
 
 // Sales Component
 const Sales = () => {
+  const { appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [customers, setCustomers] = useState([]);
   const [newCustomer, setNewCustomer] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState('');
@@ -2332,8 +2352,8 @@ const Sales = () => {
 📊 ملخص الاختيار:
 ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل`).join('\n')}
 
-💰 السعر الإجمالي: ${totalPrice.toFixed(2)} ج.م
-💰 سعر السيل الواحد: ${(totalPrice / parseInt(currentItem.quantity)).toFixed(2)} ج.م`);
+💰 السعر الإجمالي: ${totalPrice.toFixed(2)} ${currency}
+💰 سعر السيل الواحد: ${(totalPrice / parseInt(currentItem.quantity)).toFixed(2)} ${currency}`);
 
     } catch (error) {
       console.error('Error confirming multi-material selection:', error);
@@ -2730,9 +2750,15 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
     const companyMobile = s.company_mobile || '٠١٠٢٠٦٣٠٦٧٧ - ٠١٠٦٢٣٩٠٨٧٠';
     const companyLandline = s.company_landline || '٠١٠٢٠٦٣٠٦٧٧';
     const logoUrl = s.logo_url || 'https://customer-assets.emergentagent.com/job_oilseal-mgmt/artifacts/42i3e7yn_WhatsApp%20Image%202025-07-31%20at%2015.14.10_e8c55120.jpg';
+    const cur = s.currency || 'ج.م';
+    const lang = s.invoice_language || 'ar';
+    const isEn = lang === 'en';
+    const dir = isEn ? 'ltr' : 'rtl';
+    const textAlign = isEn ? 'left' : 'right';
+
     const printContent = `
       <!DOCTYPE html>
-      <html dir="rtl">
+      <html dir="${dir}">
       <head>
         <meta charset="UTF-8">
         <style>
@@ -2740,7 +2766,7 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            direction: rtl;
+            direction: ${dir};
             font-size: 15px;
           }
           .header {
@@ -2752,7 +2778,7 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
             margin-bottom: 20px;
           }
           .company-info {
-            text-align: right;
+            text-align: ${textAlign};
           }
           .company-name {
             font-size: 32px;
@@ -2795,10 +2821,10 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
             margin: 20px 0;
           }
           .customer-details {
-            text-align: right;
+            text-align: ${textAlign};
           }
           .date-info {
-            text-align: left;
+            text-align: ${isEn ? 'right' : 'left'};
           }
           .products-table {
             width: 100%;
@@ -2826,7 +2852,7 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
             color: #666;
           }
           .total-section {
-            text-align: left;
+            text-align: ${isEn ? 'right' : 'left'};
             margin-top: 10px;
           }
           .total-amount {
@@ -2856,7 +2882,7 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
             <img src="${logoUrl}" 
                  alt="Logo" 
                  style="max-width: 120px; max-height: 80px; margin-bottom: 10px;">
-            <div class="invoice-title">${invoice.invoice_title || 'عرض سعر'}</div>
+            <div class="invoice-title">${isEn ? (invoice.invoice_title === 'فاتورة' ? 'Invoice' : invoice.invoice_title === 'عرض سعر' ? 'Quotation' : invoice.invoice_title || 'Quotation') : (invoice.invoice_title || 'عرض سعر')}</div>
             <div class="invoice-number">${invoice.invoice_number}</div>
           </div>
         </div>
@@ -2864,12 +2890,12 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
         <!-- Customer and Date Info -->
         <div class="customer-info">
           <div class="customer-details">
-            <p><strong>السادة:</strong> ${invoice.customer_name}</p>
-            <p><strong>العنوان:</strong> ${invoice.customer_address || '........................'}</p>
+            <p><strong>${isEn ? 'To:' : 'السادة:'}</strong> ${invoice.customer_name}</p>
+            <p><strong>${isEn ? 'Address:' : 'العنوان:'}</strong> ${invoice.customer_address || '........................'}</p>
           </div>
           <div class="date-info">
-            <p><strong>تحرير في:</strong> ${new Date(invoice.date).toLocaleDateString('ar-EG')}</p>
-            <p><strong>Date:</strong> ${new Date(invoice.date).toLocaleDateString('en-GB')}</p>
+            <p><strong>${isEn ? 'Date:' : 'تحرير في:'}</strong> ${isEn ? new Date(invoice.date).toLocaleDateString('en-GB') : new Date(invoice.date).toLocaleDateString('ar-EG')}</p>
+            ${isEn ? '' : `<p><strong>Date:</strong> ${new Date(invoice.date).toLocaleDateString('en-GB')}</p>`}
           </div>
         </div>
 
@@ -2877,11 +2903,11 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
         <table class="products-table">
           <thead>
             <tr>
-              <th style="width: 60px;">المسلسل<br>Item</th>
-              <th style="width: 80px;">الكمية<br>QTY</th>
-              <th style="width: 200px;">Description<br>المواصفات</th>
-              <th style="width: 100px;">سعر الوحدة<br>Unit Price</th>
-              <th style="width: 100px;">إجمالي<br>Total</th>
+              <th style="width: 60px;">${isEn ? 'Item' : 'المسلسل<br>Item'}</th>
+              <th style="width: 80px;">${isEn ? 'Qty' : 'الكمية<br>QTY'}</th>
+              <th style="width: 200px;">${isEn ? 'Description' : 'Description<br>المواصفات'}</th>
+              <th style="width: 100px;">${isEn ? 'Unit Price' : 'سعر الوحدة<br>Unit Price'}</th>
+              <th style="width: 100px;">${isEn ? 'Total' : 'إجمالي<br>Total'}</th>
             </tr>
           </thead>
           <tbody>
@@ -2889,15 +2915,15 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
               <tr>
                 <td>${index + 1}</td>
                 <td>${item.quantity}</td>
-                <td style="text-align: right;">
+                <td style="text-align: ${textAlign};">
                   ${item.local_product_details ?
         `${item.local_product_details.product_size} - ${item.local_product_details.product_type}` :
         `${item.seal_type} - ${item.material_type}<br>
-                    <small>${item.inner_diameter} × ${item.outer_diameter} × ${item.height} مم${item.wall_height ? ` (ارتفاع الحيطة: ${item.wall_height} مم)` : ""}</small>`
+                    <small>${item.inner_diameter} × ${item.outer_diameter} × ${item.height} ${isEn ? 'mm' : 'مم'}${item.wall_height ? ` (${isEn ? 'wall height' : 'ارتفاع الحيطة'}: ${item.wall_height} ${isEn ? 'mm' : 'مم'})` : ""}</small>`
       }
                 </td>
-                <td>ج.م ${item.unit_price.toFixed(2)}</td>
-                <td>ج.م ${item.total_price.toFixed(2)}</td>
+                <td>${cur} ${item.unit_price.toFixed(2)}</td>
+                <td>${cur} ${item.total_price.toFixed(2)}</td>
               </tr>
             `).join('')}
             <!-- Empty rows for additional items -->
@@ -2915,15 +2941,15 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
 
         <!-- Total Section -->
         <div class="total-section">
-          <div style="text-align: left; margin-bottom: 10px;">
+          <div style="text-align: ${isEn ? 'right' : 'left'}; margin-bottom: 10px;">
             ${invoice.subtotal ? `
               <div style="margin-bottom: 5px;">
-                <span>المجموع الفرعي: ج.م ${invoice.subtotal.toFixed(2)}</span>
+                <span>${isEn ? 'Subtotal' : 'المجموع الفرعي'}: ${cur} ${invoice.subtotal.toFixed(2)}</span>
               </div>
             ` : ''}
             ${invoice.discount && invoice.discount > 0 ? `
               <div style="margin-bottom: 5px; color: #d32f2f;">
-                <span>الخصم: - ج.م ${invoice.discount.toFixed(2)}</span>
+                <span>${isEn ? 'Discount' : 'الخصم'}: - ${cur} ${invoice.discount.toFixed(2)}</span>
                 ${invoice.discount_type === 'percentage' && invoice.discount_value ?
           ` <small>(${invoice.discount_value}%)</small>` : ''}
               </div>
@@ -2931,33 +2957,33 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
             ` : ''}
           </div>
           <div class="total-amount">
-            الإجمالي النهائي: ج.م ${(invoice.total_after_discount || invoice.total_amount).toFixed(2)}
+            ${isEn ? 'Grand Total' : 'الإجمالي النهائي'}: ${cur} ${(invoice.total_after_discount || invoice.total_amount).toFixed(2)}
           </div>
         </div>
 
         <!-- Additional Info -->
         <div style="margin-top: 20px; text-align: center; font-size: 12px;">
-          <p><strong>ملحوظة:</strong> فقط وقدره</p>
+          <p><strong>${isEn ? 'Note:' : 'ملحوظة:'}</strong> ${isEn ? 'Amount in words:' : 'فقط وقدره'}</p>
           <div style="height: 30px; border-bottom: 1px solid #000; margin: 10px 40px;"></div>
         </div>
 
         <!-- Footer -->
         <div class="footer">
           <div>
-            <p><strong>التوقيع:</strong></p>
-            <p>موبايل: ${companyMobile}</p>
-            <p>تليفون: ${companyLandline}</p>
+            <p><strong>${isEn ? 'Signature:' : 'التوقيع:'}</strong></p>
+            <p>${isEn ? 'Mobile' : 'موبايل'}: ${companyMobile}</p>
+            <p>${isEn ? 'Phone' : 'تليفون'}: ${companyLandline}</p>
           </div>
-          <div style="text-align: left;">
-            <p><strong>المستلم:</strong></p>
+          <div style="text-align: ${isEn ? 'right' : 'left'};">
+            <p><strong>${isEn ? 'Received by:' : 'المستلم:'}</strong></p>
             <p>${companyAddress}</p>
-            <p>موبايل: ${companyMobile}</p>
+            <p>${isEn ? 'Mobile' : 'موبايل'}: ${companyMobile}</p>
           </div>
         </div>
 
         <!-- Note -->
         <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #666;">
-          <p>يقر المشتري بأنه قام بمعاينة البضاعة وقبولها</p>
+          <p>${isEn ? 'The buyer acknowledges that the goods have been inspected and accepted.' : 'يقر المشتري بأنه قام بمعاينة البضاعة وقبولها'}</p>
         </div>
       </body>
       </html>
@@ -3600,8 +3626,8 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
                       }
                     </td>
                     <td className="border border-gray-300 p-2">{item.quantity}</td>
-                    <td className="border border-gray-300 p-2">ج.م {item.unit_price}</td>
-                    <td className="border border-gray-300 p-2">ج.م {item.total_price}</td>
+                    <td className="border border-gray-300 p-2">{currency} {item.unit_price}</td>
+                    <td className="border border-gray-300 p-2">{currency} {item.total_price}</td>
                     <td className="border border-gray-300 p-2">
                       <div className="flex space-x-2 space-x-reverse">
                         <button
@@ -3659,7 +3685,7 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
 
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  قيمة الخصم {discountType === 'percentage' ? '(%)' : '(ج.م)'}
+                  قيمة الخصم {discountType === 'percentage' ? '(%)' : `(${currency})`}
                 </label>
                 <input
                   type="number"
@@ -3675,7 +3701,7 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
               <div>
                 <label className="block text-sm font-medium mb-1">مبلغ الخصم</label>
                 <div className="p-2 bg-white border border-gray-300 rounded w-full">
-                  ج.م {(() => {
+                  {currency} {(() => {
                     const subtotal = items.reduce((sum, item) => sum + item.total_price, 0);
                     const discountAmount = discountType === 'percentage'
                       ? (subtotal * parseFloat(discount || 0)) / 100
@@ -3691,13 +3717,13 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
               <div className="flex justify-between items-center mb-2">
                 <span className="text-lg">المجموع الفرعي:</span>
                 <span className="text-lg font-semibold">
-                  ج.م {items.reduce((sum, item) => sum + item.total_price, 0).toFixed(2)}
+                  {currency} {items.reduce((sum, item) => sum + item.total_price, 0).toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-lg">الخصم:</span>
                 <span className="text-lg font-semibold text-red-600">
-                  - ج.م {(() => {
+                  - {currency} {(() => {
                     const subtotal = items.reduce((sum, item) => sum + item.total_price, 0);
                     const discountAmount = discountType === 'percentage'
                       ? (subtotal * parseFloat(discount || 0)) / 100
@@ -3710,7 +3736,7 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
               <div className="flex justify-between items-center">
                 <span className="text-xl font-bold">الإجمالي النهائي:</span>
                 <span className="text-xl font-bold text-green-600">
-                  ج.م {(() => {
+                  {currency} {(() => {
                     const subtotal = items.reduce((sum, item) => sum + item.total_price, 0);
                     const discountAmount = discountType === 'percentage'
                       ? (subtotal * parseFloat(discount || 0)) / 100
@@ -3722,7 +3748,7 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
             </div>
 
             <div className="text-xl font-bold" style={{ display: 'none' }}>
-              الإجمالي: ج.م {items.reduce((sum, item) => sum + item.total_price, 0).toFixed(2)}
+              الإجمالي: {currency} {items.reduce((sum, item) => sum + item.total_price, 0).toFixed(2)}
             </div>
           </div>
 
@@ -4371,6 +4397,8 @@ const Stock = () => {
 
 // Deferred Payments Component
 const Deferred = () => {
+  const { appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [unpaidInvoices, setUnpaidInvoices] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -4522,7 +4550,7 @@ const Deferred = () => {
                   {totals.invoiceCount} فاتورة
                 </div>
                 <div className="text-sm font-bold text-green-600">
-                  {totals.totalAmount.toFixed(2)} ج.م
+                  {totals.totalAmount.toFixed(2)} {currency}
                 </div>
               </div>
             ))}
@@ -4560,7 +4588,7 @@ const Deferred = () => {
               <label className="block text-sm font-medium mb-1">المبلغ المستحق</label>
               <input
                 type="text"
-                value={`ج.م ${selectedInvoice.remaining_amount?.toFixed(2) || '0.00'}`}
+                value={`${currency} ${selectedInvoice.remaining_amount?.toFixed(2) || '0.00'}`}
                 disabled
                 className="w-full p-2 border border-gray-300 rounded bg-gray-100"
               />
@@ -4647,11 +4675,11 @@ const Deferred = () => {
                   <td className="border border-gray-300 p-2">
                     {new Date(invoice.date).toLocaleDateString('ar-EG')}
                   </td>
-                  <td className="border border-gray-300 p-2">ج.م {invoice.total_amount?.toFixed(2) || '0.00'}</td>
-                  <td className="border border-gray-300 p-2">ج.م {invoice.paid_amount?.toFixed(2) || '0.00'}</td>
+                  <td className="border border-gray-300 p-2">{currency} {invoice.total_amount?.toFixed(2) || '0.00'}</td>
+                  <td className="border border-gray-300 p-2">{currency} {invoice.paid_amount?.toFixed(2) || '0.00'}</td>
                   <td className="border border-gray-300 p-2">
                     <span className="font-bold text-red-600">
-                      ج.م {invoice.remaining_amount?.toFixed(2) || '0.00'}
+                      {currency} {invoice.remaining_amount?.toFixed(2) || '0.00'}
                     </span>
                   </td>
                   <td className="border border-gray-300 p-2">
@@ -4701,7 +4729,7 @@ const Deferred = () => {
           <div className="bg-red-50 p-4 rounded">
             <h4 className="font-semibold text-red-800">إجمالي المبالغ المستحقة</h4>
             <p className="text-2xl font-bold text-red-600">
-              ج.م {filteredInvoices.reduce((sum, inv) => sum + (inv.remaining_amount || 0), 0).toFixed(2)}
+              {currency} {filteredInvoices.reduce((sum, inv) => sum + (inv.remaining_amount || 0), 0).toFixed(2)}
             </p>
           </div>
 
@@ -4713,7 +4741,7 @@ const Deferred = () => {
           <div className="bg-blue-50 p-4 rounded">
             <h4 className="font-semibold text-blue-800">إجمالي المبلغ الأصلي</h4>
             <p className="text-2xl font-bold text-blue-600">
-              ج.م {filteredInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0).toFixed(2)}
+              {currency} {filteredInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0).toFixed(2)}
             </p>
           </div>
         </div>
@@ -4724,6 +4752,8 @@ const Deferred = () => {
 
 // Expenses Component
 const Expenses = () => {
+  const { appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [expenses, setExpenses] = useState([]);
   const [newExpense, setNewExpense] = useState({
     description: '',
@@ -4897,7 +4927,7 @@ const Expenses = () => {
         <div className="bg-red-50 p-6 rounded-lg">
           <h3 className="text-lg font-semibold text-red-800 mb-2">إجمالي المصروفات</h3>
           <p className="text-3xl font-bold text-red-600">
-            ج.م {getTotalExpenses().toFixed(2)}
+            {currency} {getTotalExpenses().toFixed(2)}
           </p>
         </div>
 
@@ -4909,7 +4939,7 @@ const Expenses = () => {
         <div className="bg-yellow-50 p-6 rounded-lg">
           <h3 className="text-lg font-semibold text-yellow-800 mb-2">متوسط المصروف</h3>
           <p className="text-3xl font-bold text-yellow-600">
-            ج.م {expenses.length > 0 ? (getTotalExpenses() / expenses.length).toFixed(2) : '0.00'}
+            {currency} {expenses.length > 0 ? (getTotalExpenses() / expenses.length).toFixed(2) : '0.00'}
           </p>
         </div>
       </div>
@@ -4922,7 +4952,7 @@ const Expenses = () => {
           {Object.entries(getExpensesByCategory()).map(([category, amount]) => (
             <div key={category} className="text-center p-4 border rounded">
               <h4 className="font-medium text-gray-700">{category}</h4>
-              <p className="text-xl font-bold text-blue-600">ج.م {amount.toFixed(2)}</p>
+              <p className="text-xl font-bold text-blue-600">{currency} {amount.toFixed(2)}</p>
             </div>
           ))}
         </div>
@@ -4949,7 +4979,7 @@ const Expenses = () => {
                   <td className="border border-gray-300 p-2">{expense.description}</td>
                   <td className="border border-gray-300 p-2">
                     <span className="font-semibold text-red-600">
-                      ج.م {expense.amount.toFixed(2)}
+                      {currency} {expense.amount.toFixed(2)}
                     </span>
                   </td>
                   <td className="border border-gray-300 p-2">
@@ -4990,6 +5020,8 @@ const Expenses = () => {
 
 // Revenue Component
 const Revenue = () => {
+  const { appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [revenueData, setRevenueData] = useState({
     total_revenue: 0,
     total_expenses: 0,
@@ -5047,21 +5079,21 @@ const Revenue = () => {
         <div className="bg-green-50 p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold text-green-800 text-center mb-2">إجمالي الإيرادات</h3>
           <p className="text-3xl font-bold text-green-600 text-center">
-            ج.م {revenueData.total_revenue?.toFixed(2) || '0.00'}
+            {currency} {revenueData.total_revenue?.toFixed(2) || '0.00'}
           </p>
         </div>
 
         <div className="bg-red-50 p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold text-red-800 text-center mb-2">إجمالي المصروفات</h3>
           <p className="text-3xl font-bold text-red-600 text-center">
-            ج.م {revenueData.total_expenses?.toFixed(2) || '0.00'}
+            {currency} {revenueData.total_expenses?.toFixed(2) || '0.00'}
           </p>
         </div>
 
         <div className="bg-yellow-50 p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold text-yellow-800 text-center mb-2">تكلفة الخامات</h3>
           <p className="text-3xl font-bold text-yellow-600 text-center">
-            ج.م {revenueData.material_cost?.toFixed(2) || '0.00'}
+            {currency} {revenueData.material_cost?.toFixed(2) || '0.00'}
           </p>
         </div>
 
@@ -5069,7 +5101,7 @@ const Revenue = () => {
           <h3 className="text-lg font-semibold text-blue-800 text-center mb-2">صافي الربح</h3>
           <p className={`text-3xl font-bold text-center ${(revenueData.profit || 0) >= 0 ? 'text-blue-600' : 'text-red-600'
             }`}>
-            ج.م {revenueData.profit?.toFixed(2) || '0.00'}
+            {currency} {revenueData.profit?.toFixed(2) || '0.00'}
           </p>
         </div>
       </div>
@@ -5087,7 +5119,7 @@ const Revenue = () => {
             <thead>
               <tr className="bg-gray-100">
                 <th className="border border-gray-300 p-3">البيان</th>
-                <th className="border border-gray-300 p-3">المبلغ (ج.م)</th>
+                <th className="border border-gray-300 p-3">المبلغ ({currency})</th>
                 <th className="border border-gray-300 p-3">النسبة المئوية</th>
               </tr>
             </thead>
@@ -5178,7 +5210,8 @@ const Revenue = () => {
 
 // Invoices Component
 const Invoices = () => {
-  const { user } = useAuth();
+  const { user, appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [invoices, setInvoices] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [filterStatus, setFilterStatus] = useState('');
@@ -5766,8 +5799,8 @@ const Invoices = () => {
                     <small>${item.inner_diameter} × ${item.outer_diameter} × ${item.height} مم${item.wall_height ? ` (ارتفاع الحيطة: ${item.wall_height} مم)` : ""}</small>`
       }
                 </td>
-                <td>ج.م ${item.unit_price.toFixed(2)}</td>
-                <td>ج.م ${item.total_price.toFixed(2)}</td>
+                <td>${currency} ${item.unit_price.toFixed(2)}</td>
+                <td>${currency} ${item.total_price.toFixed(2)}</td>
               </tr>
             `).join('')}
             <!-- Empty rows for additional items -->
@@ -5788,12 +5821,12 @@ const Invoices = () => {
           <div style="text-align: left; margin-bottom: 10px;">
             ${invoice.subtotal ? `
               <div style="margin-bottom: 5px;">
-                <span>المجموع الفرعي: ج.م ${invoice.subtotal.toFixed(2)}</span>
+                <span>المجموع الفرعي: ${currency} ${invoice.subtotal.toFixed(2)}</span>
               </div>
             ` : ''}
             ${invoice.discount && invoice.discount > 0 ? `
               <div style="margin-bottom: 5px; color: #d32f2f;">
-                <span>الخصم: - ج.م ${invoice.discount.toFixed(2)}</span>
+                <span>الخصم: - ${currency} ${invoice.discount.toFixed(2)}</span>
                 ${invoice.discount_type === 'percentage' && invoice.discount_value ?
           ` <small>(${invoice.discount_value}%)</small>` : ''}
               </div>
@@ -5801,7 +5834,7 @@ const Invoices = () => {
             ` : ''}
           </div>
           <div class="total-amount">
-            الإجمالي النهائي: ج.م ${(invoice.total_after_discount || invoice.total_amount).toFixed(2)}
+            الإجمالي النهائي: ${currency} ${(invoice.total_after_discount || invoice.total_amount).toFixed(2)}
           </div>
         </div>
 
@@ -5955,7 +5988,7 @@ const Invoices = () => {
         <div className="bg-yellow-50 p-4 rounded-lg text-center">
           <h3 className="font-semibold text-yellow-800">الإجمالي</h3>
           <p className="text-2xl font-bold text-yellow-600">
-            ج.م {invoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0).toFixed(2)}
+            {currency} {invoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0).toFixed(2)}
           </p>
         </div>
       </div>
@@ -5991,12 +6024,12 @@ const Invoices = () => {
                   </td>
                   <td className="border border-gray-300 p-2">{invoice.payment_method}</td>
                   <td className="border border-gray-300 p-2 font-semibold">
-                    ج.م {invoice.subtotal?.toFixed(2) || (invoice.total_amount?.toFixed(2)) || '0.00'}
+                    {currency} {invoice.subtotal?.toFixed(2) || (invoice.total_amount?.toFixed(2)) || '0.00'}
                   </td>
                   <td className="border border-gray-300 p-2 text-red-600">
                     {invoice.discount && invoice.discount > 0 ? (
                       <div>
-                        <span>ج.م {invoice.discount.toFixed(2)}</span>
+                        <span>{currency} {invoice.discount.toFixed(2)}</span>
                         {invoice.discount_type === 'percentage' && invoice.discount_value && (
                           <small className="block text-xs">(%{invoice.discount_value})</small>
                         )}
@@ -6006,7 +6039,7 @@ const Invoices = () => {
                     )}
                   </td>
                   <td className="border border-gray-300 p-2 font-semibold text-green-600">
-                    ج.م {(invoice.total_after_discount || invoice.total_amount)?.toFixed(2) || '0.00'}
+                    {currency} {(invoice.total_after_discount || invoice.total_amount)?.toFixed(2) || '0.00'}
                   </td>
                   <td className="border border-gray-300 p-2">
                     <span className={`px-2 py-1 rounded text-sm cursor-pointer ${invoice.status === 'مدفوعة' ? 'bg-green-100 text-green-800' :
@@ -6335,7 +6368,7 @@ const Invoices = () => {
                           />
                         </td>
                         <td className="border border-gray-300 p-2 font-semibold">
-                          ج.م {(item.total_price || 0).toFixed(2)}
+                          {currency} {(item.total_price || 0).toFixed(2)}
                         </td>
                         <td className="border border-gray-300 p-2">
                           <button
@@ -6514,7 +6547,8 @@ const Invoices = () => {
 
 // Deleted Invoices Component
 const DeletedInvoices = () => {
-  const { user } = useAuth();
+  const { user, appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [deletedInvoices, setDeletedInvoices] = useState([]);
@@ -6875,7 +6909,7 @@ const DeletedInvoices = () => {
                   </td>
                   <td className="border border-gray-300 p-2">{invoice.customer_name}</td>
                   <td className="border border-gray-300 p-2 font-bold">
-                    {invoice.total_amount?.toFixed(2)} ج.م
+                    {invoice.total_amount?.toFixed(2)} {currency}
                   </td>
                   <td className="border border-gray-300 p-2">{invoice.payment_method}</td>
                   <td className="border border-gray-300 p-2 text-sm text-gray-600">
@@ -6925,6 +6959,8 @@ const DeletedInvoices = () => {
 
 // Customer Statement Component (كشف الحساب)
 const CustomerStatement = () => {
+  const { appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [statement, setStatement] = useState(null);
@@ -7089,15 +7125,15 @@ const CustomerStatement = () => {
         <div class="summary">
           <div class="summary-row">
             <span><strong>إجمالي الدائن:</strong></span>
-            <span>${summary.total_credit?.toFixed(2) || '0.00'} ج.م</span>
+            <span>${summary.total_credit?.toFixed(2) || '0.00'} ${currency}</span>
           </div>
           <div class="summary-row">
             <span><strong>إجمالي المدين:</strong></span>
-            <span>${summary.total_debit?.toFixed(2) || '0.00'} ج.م</span>
+            <span>${summary.total_debit?.toFixed(2) || '0.00'} ${currency}</span>
           </div>
           <div class="summary-row final-balance">
             <span><strong>الرصيد النهائي:</strong></span>
-            <span>${summary.final_balance?.toFixed(2) || '0.00'} ج.م</span>
+            <span>${summary.final_balance?.toFixed(2) || '0.00'} ${currency}</span>
           </div>
         </div>
 
@@ -7253,20 +7289,20 @@ const CustomerStatement = () => {
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">إجمالي الدائن</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {statement.summary.total_credit?.toFixed(2)} ج.م
+                  {statement.summary.total_credit?.toFixed(2)} {currency}
                 </p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">إجمالي المدين</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {statement.summary.total_debit?.toFixed(2)} ج.م
+                  {statement.summary.total_debit?.toFixed(2)} {currency}
                 </p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-1">الرصيد النهائي</p>
                 <p className={`text-3xl font-bold ${statement.summary.final_balance >= 0 ? 'text-green-600' : 'text-red-600'
                   }`}>
-                  {statement.summary.final_balance?.toFixed(2)} ج.م
+                  {statement.summary.final_balance?.toFixed(2)} {currency}
                 </p>
               </div>
             </div>
@@ -7293,7 +7329,8 @@ const CustomerStatement = () => {
 
 // Customer Account Settlement Component - تصفية حساب العميل
 const SettleAccount = () => {
-  const { user } = useAuth();
+  const { user, appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [deferredInvoices, setDeferredInvoices] = useState([]);
@@ -7398,7 +7435,7 @@ const SettleAccount = () => {
       return;
     }
 
-    if (!confirm(`هل أنت متأكد من تصفية حساب العميل بمبلغ ${parseFloat(amountPaid).toFixed(2)} ج.م؟\n\nسيتم توزيع المبلغ على الفواتير الآجلة من الأقدم للأحدث`)) {
+    if (!confirm(`هل أنت متأكد من تصفية حساب العميل بمبلغ ${parseFloat(amountPaid).toFixed(2)} ${currency}؟\n\nسيتم توزيع المبلغ على الفواتير الآجلة من الأقدم للأحدث`)) {
       return;
     }
 
@@ -7424,17 +7461,17 @@ const SettleAccount = () => {
 
       // Show detailed result
       let message = `✅ ${response.data.message}\n\n`;
-      message += `💰 المبلغ المدفوع: ${response.data.total_amount_paid.toFixed(2)} ج.م\n`;
-      message += `📊 تم توزيع: ${response.data.amount_distributed.toFixed(2)} ج.م\n`;
+      message += `💰 المبلغ المدفوع: ${response.data.total_amount_paid.toFixed(2)} ${currency}\n`;
+      message += `📊 تم توزيع: ${response.data.amount_distributed.toFixed(2)} ${currency}\n`;
 
       if (response.data.remaining_amount > 0) {
-        message += `💵 متبقي: ${response.data.remaining_amount.toFixed(2)} ج.م\n\n`;
+        message += `💵 متبقي: ${response.data.remaining_amount.toFixed(2)} ${currency}\n\n`;
       }
 
       message += `📋 الفواتير المدفوعة (${response.data.invoices_count}):\n`;
       response.data.paid_invoices.forEach(inv => {
         message += `\n• ${inv.invoice_number}\n`;
-        message += `  المدفوع: ${inv.amount_paid.toFixed(2)} ج.م\n`;
+        message += `  المدفوع: ${inv.amount_paid.toFixed(2)} ${currency}\n`;
         message += `  الحالة: ${inv.status}\n`;
       });
 
@@ -7459,12 +7496,12 @@ const SettleAccount = () => {
 
     const confirmMessage = `🔄 تسوية الحساب\n\n` +
       `العميل/المورد: ${customers.find(c => c.id === selectedCustomer)?.name}\n\n` +
-      `رصيد المورد: ${supplierBalance.toFixed(2)} ج.م\n` +
-      `ديون العميل: ${totalRemaining.toFixed(2)} ج.م\n\n` +
-      `سيتم تسوية: ${settlementAmount.toFixed(2)} ج.م\n\n` +
+      `رصيد المورد: ${supplierBalance.toFixed(2)} ${currency}\n` +
+      `ديون العميل: ${totalRemaining.toFixed(2)} ${currency}\n\n` +
+      `سيتم تسوية: ${settlementAmount.toFixed(2)} ${currency}\n\n` +
       `بعد التسوية:\n` +
-      `• رصيد المورد: ${(supplierBalance - settlementAmount).toFixed(2)} ج.م\n` +
-      `• ديون العميل: ${(totalRemaining - settlementAmount).toFixed(2)} ج.م\n\n` +
+      `• رصيد المورد: ${(supplierBalance - settlementAmount).toFixed(2)} ${currency}\n` +
+      `• ديون العميل: ${(totalRemaining - settlementAmount).toFixed(2)} ${currency}\n\n` +
       `⚠️ ملاحظة: تسوية داخلية بدون تأثير على الخزينة\n\n` +
       `هل تريد المتابعة؟`;
 
@@ -7491,16 +7528,16 @@ const SettleAccount = () => {
       // Show detailed result
       let message = `✅ ${response.data.message}\n\n`;
       message += `📊 التفاصيل:\n`;
-      message += `• رصيد المورد السابق: ${response.data.supplier_previous_balance.toFixed(2)} ج.م\n`;
-      message += `• ديون العميل السابقة: ${response.data.customer_previous_debt.toFixed(2)} ج.م\n`;
-      message += `• مبلغ التسوية: ${response.data.settlement_amount.toFixed(2)} ج.م\n\n`;
+      message += `• رصيد المورد السابق: ${response.data.supplier_previous_balance.toFixed(2)} ${currency}\n`;
+      message += `• ديون العميل السابقة: ${response.data.customer_previous_debt.toFixed(2)} ${currency}\n`;
+      message += `• مبلغ التسوية: ${response.data.settlement_amount.toFixed(2)} ${currency}\n\n`;
       message += `📉 بعد التسوية:\n`;
-      message += `• رصيد المورد الجديد: ${response.data.supplier_new_balance.toFixed(2)} ج.م\n`;
-      message += `• ديون العميل المتبقية: ${response.data.customer_remaining_debt.toFixed(2)} ج.م\n\n`;
+      message += `• رصيد المورد الجديد: ${response.data.supplier_new_balance.toFixed(2)} ${currency}\n`;
+      message += `• ديون العميل المتبقية: ${response.data.customer_remaining_debt.toFixed(2)} ${currency}\n\n`;
       message += `📋 الفواتير المسواة (${response.data.invoices_count}):\n`;
       response.data.settled_invoices.forEach(inv => {
         message += `\n• ${inv.invoice_number}\n`;
-        message += `  المدفوع: ${inv.amount_paid.toFixed(2)} ج.م\n`;
+        message += `  المدفوع: ${inv.amount_paid.toFixed(2)} ${currency}\n`;
         message += `  الحالة: ${inv.status}\n`;
       });
       message += `\n${response.data.note}`;
@@ -7558,7 +7595,7 @@ const SettleAccount = () => {
           {/* Amount Paid */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              المبلغ المدفوع (ج.م) *
+              المبلغ المدفوع ({currency}) *
             </label>
             <input
               type="number"
@@ -7618,13 +7655,13 @@ const SettleAccount = () => {
                 {isCustomerAlsoSupplier ? (
                   <div className="text-sm space-y-1">
                     <p className="text-gray-700">
-                      <span className="font-semibold">رصيد المورد:</span> {supplierBalance.toFixed(2)} ج.م
+                      <span className="font-semibold">رصيد المورد:</span> {supplierBalance.toFixed(2)} {currency}
                     </p>
                     <p className="text-gray-700">
-                      <span className="font-semibold">ديون العميل:</span> {totalRemaining.toFixed(2)} ج.م
+                      <span className="font-semibold">ديون العميل:</span> {totalRemaining.toFixed(2)} {currency}
                     </p>
                     <p className="text-purple-700 font-semibold">
-                      سيتم تسوية: {Math.min(supplierBalance, totalRemaining).toFixed(2)} ج.م
+                      سيتم تسوية: {Math.min(supplierBalance, totalRemaining).toFixed(2)} {currency}
                     </p>
                   </div>
                 ) : (
@@ -7676,7 +7713,7 @@ const SettleAccount = () => {
             <div className="text-right">
               <p className="text-sm text-gray-600">إجمالي المستحق</p>
               <p className="text-2xl font-bold text-red-600">
-                {totalRemaining.toFixed(2)} ج.م
+                {totalRemaining.toFixed(2)} {currency}
               </p>
             </div>
           </div>
@@ -7707,13 +7744,13 @@ const SettleAccount = () => {
                         {new Date(invoice.date).toLocaleDateString('ar-EG')}
                       </td>
                       <td className="border border-gray-300 p-3">
-                        {invoice.total_amount.toFixed(2)} ج.م
+                        {invoice.total_amount.toFixed(2)} {currency}
                       </td>
                       <td className="border border-gray-300 p-3 text-green-600">
-                        {invoice.paid_amount.toFixed(2)} ج.م
+                        {invoice.paid_amount.toFixed(2)} {currency}
                       </td>
                       <td className="border border-gray-300 p-3 text-red-600 font-bold">
-                        {invoice.remaining_amount.toFixed(2)} ج.م
+                        {invoice.remaining_amount.toFixed(2)} {currency}
                       </td>
                     </tr>
                   ))}
@@ -7724,7 +7761,7 @@ const SettleAccount = () => {
                       الإجمالي:
                     </td>
                     <td className="border border-gray-300 p-3 text-red-600">
-                      {totalRemaining.toFixed(2)} ج.م
+                      {totalRemaining.toFixed(2)} {currency}
                     </td>
                   </tr>
                 </tfoot>
@@ -7745,6 +7782,8 @@ const SettleAccount = () => {
 
 // Work Orders Component
 const WorkOrders = () => {
+  const { appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [workOrders, setWorkOrders] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [selectedInvoices, setSelectedInvoices] = useState([]);
@@ -7918,7 +7957,7 @@ const WorkOrders = () => {
           <strong>التاريخ:</strong> ${new Date(workOrder.created_at).toLocaleDateString('ar-EG')}<br>
           <strong>الحالة:</strong> ${workOrder.status || 'جديد'}<br>
           <strong>عدد الفواتير:</strong> ${workOrderInvoices.length}<br>
-          <strong>إجمالي المبلغ:</strong> ج.م ${totalAmount.toFixed(2)}
+          <strong>إجمالي المبلغ:</strong> ${currency} ${totalAmount.toFixed(2)}
           ${workOrder.description ? `<br><strong>الوصف:</strong> ${workOrder.description}` : ''}
           ${workOrder.supervisor_name ? `<br><strong>المشرف على التصنيع:</strong> ${workOrder.supervisor_name}` : ''}
           ${workOrder.is_daily ? `<br><strong>نوع الأمر:</strong> أمر شغل يومي تلقائي` : ''}
@@ -7941,7 +7980,7 @@ const WorkOrders = () => {
                 <td style="border: 1px solid #ddd; padding: 8px;">${invoice.invoice_number}</td>
                 <td style="border: 1px solid #ddd; padding: 8px;">${invoice.customer_name}</td>
                 <td style="border: 1px solid #ddd; padding: 8px;">${new Date(invoice.date).toLocaleDateString('ar-EG')}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">ج.م ${invoice.total_amount?.toFixed(2) || '0.00'}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">${currency} ${invoice.total_amount?.toFixed(2) || '0.00'}</td>
                 <td style="border: 1px solid #ddd; padding: 8px;">${invoice.items?.length || 0}</td>
               </tr>
             `).join('')}
@@ -8104,7 +8143,7 @@ const WorkOrders = () => {
                 {getAvailableInvoicesForAdd().map(invoice => (
                   <option key={invoice.id} value={invoice.id}>
                     {invoice.invoice_number} - {invoice.customer_name}
-                    (ج.م {invoice.total_amount?.toFixed(2) || '0.00'})
+                    ({currency} {invoice.total_amount?.toFixed(2) || '0.00'})
                   </option>
                 ))}
               </select>
@@ -8206,7 +8245,7 @@ const WorkOrders = () => {
                 التاريخ: {new Date(invoice.date).toLocaleDateString('ar-EG')}
               </p>
               <p className="text-sm font-medium">
-                المبلغ: ج.م {invoice.total_amount?.toFixed(2) || '0.00'}
+                المبلغ: {currency} {invoice.total_amount?.toFixed(2) || '0.00'}
               </p>
               <p className="text-sm">
                 المنتجات: {invoice.items?.length || 0} صنف
@@ -8234,7 +8273,7 @@ const WorkOrders = () => {
               إجمالي الفواتير: {selectedInvoices.length} فاتورة
             </p>
             <p className="text-blue-700">
-              إجمالي المبلغ: ج.م {invoices
+              إجمالي المبلغ: {currency} {invoices
                 .filter(inv => selectedInvoices.includes(inv.id))
                 .reduce((sum, inv) => sum + (inv.total_amount || 0), 0)
                 .toFixed(2)}
@@ -8290,7 +8329,7 @@ const WorkOrders = () => {
                     </span>
                   </p>
                   <p><strong>إجمالي المبلغ:</strong>
-                    ج.م {workOrder.total_amount?.toFixed(2) ||
+                    {currency} {workOrder.total_amount?.toFixed(2) ||
                       workOrderInvoices.reduce((sum, inv) => sum + (inv?.total_amount || 0), 0).toFixed(2)}
                   </p>
                   {workOrder.description && (
@@ -8313,7 +8352,7 @@ const WorkOrders = () => {
                     <div key={index} className="bg-gray-50 p-3 rounded border">
                       <p><strong>رقم الفاتورة:</strong> {invoice.invoice_number}</p>
                       <p><strong>العميل:</strong> {invoice.customer_name}</p>
-                      <p><strong>المبلغ:</strong> ج.م {invoice.total_amount?.toFixed(2) || '0.00'}</p>
+                      <p><strong>المبلغ:</strong> {currency} {invoice.total_amount?.toFixed(2) || '0.00'}</p>
                       <p><strong>المنتجات:</strong> {invoice.items?.length || 0} صنف</p>
                     </div>
                   ))}
@@ -8438,7 +8477,8 @@ const WorkOrders = () => {
 
 // Treasury Management Component
 const Treasury = () => {
-  const { user } = useAuth(); // للحصول على معلومات المستخدم الحالي
+  const { user, appSettings } = useAuth(); // للحصول على معلومات المستخدم الحالي
+  const currency = appSettings?.currency || 'ج.م';
   const yadElsawyName = user?.username === 'Faster' ? 'خزنه مؤقته' : 'يد الصاوي';
   const [accounts, setAccounts] = useState([
     { id: 'cash', name: 'نقدي', balance: 0, transactions: [] },
@@ -8666,7 +8706,7 @@ const Treasury = () => {
       fetchTreasuryData();
 
       if (accountId === 'yad_elsawy') {
-        alert(`تم تصفير حساب ${account.name} بنجاح وترحيل المبلغ ${account.balance.toFixed(2)} ج.م للخزنة الرئيسية`);
+        alert(`تم تصفير حساب ${account.name} بنجاح وترحيل المبلغ ${account.balance.toFixed(2)} ${currency} للخزنة الرئيسية`);
       } else {
         alert(`تم تصفير حساب ${account.name} بنجاح`);
       }
@@ -8880,7 +8920,7 @@ const Treasury = () => {
             <h3 className="font-semibold text-gray-800 mb-2">{account.name}</h3>
             <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'
               }`}>
-              ج.م {account.balance.toFixed(2)}
+              {currency} {account.balance.toFixed(2)}
             </p>
             <p className="text-sm text-gray-600 mt-1">
               {account.transactions.length} عملية
@@ -8952,7 +8992,7 @@ const Treasury = () => {
                             : 'text-red-600 font-semibold'
                         }>
                           {transaction.type === 'income' || transaction.type === 'transfer_in' ? '+' : '-'}
-                          ج.م {transaction.amount.toFixed(2)}
+                          {currency} {transaction.amount.toFixed(2)}
                         </span>
                       </td>
                       <td className="border border-gray-300 p-2 text-sm text-gray-600">
@@ -9008,7 +9048,7 @@ const Treasury = () => {
                 >
                   {accounts.map(account => (
                     <option key={account.id} value={account.id}>
-                      {account.name} (ج.م {account.balance.toFixed(2)})
+                      {account.name} ({currency} {account.balance.toFixed(2)})
                     </option>
                   ))}
                 </select>
@@ -9178,7 +9218,7 @@ const Treasury = () => {
 
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
                   <p className="text-gray-700 text-sm">
-                    💰 المبلغ الأصلي (للرصيد): <span className="font-bold text-blue-600">{editingTransaction.original_amount?.toFixed(2)} ج.م</span>
+                    💰 المبلغ الأصلي (للرصيد): <span className="font-bold text-blue-600">{editingTransaction.original_amount?.toFixed(2)} {currency}</span>
                   </p>
                 </div>
 
@@ -9228,7 +9268,7 @@ const Treasury = () => {
 
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
                   <p className="text-gray-700 text-sm">
-                    💰 المبلغ: <span className="font-bold">{editingTransaction.amount?.toFixed(2)} ج.م</span>
+                    💰 المبلغ: <span className="font-bold">{editingTransaction.amount?.toFixed(2)} {currency}</span>
                   </p>
                 </div>
 
@@ -9290,7 +9330,8 @@ const Backup = () => {
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState('local'); // 'local' or 'drive'
-  const { user } = useAuth();
+  const { user, appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
 
   // Bulk deletion states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -9401,7 +9442,7 @@ const Backup = () => {
       if (data.invoices && data.invoices.length > 0) {
         message += 'الفواتير المحذوفة:\n';
         data.invoices.forEach(inv => {
-          message += `• ${inv.invoice_number} - ${inv.customer_name} - ${inv.total_amount} ج.م\n`;
+          message += `• ${inv.invoice_number} - ${inv.customer_name} - ${inv.total_amount} ${currency}\n`;
         });
       }
 
@@ -10096,6 +10137,8 @@ const Backup = () => {
 
 // Users Management Component  
 const Users = () => {
+  const { appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [users, setUsers] = useState([]);
   const [newUser, setNewUser] = useState({
     username: '',
@@ -10670,6 +10713,8 @@ const Users = () => {
 
 // Material Pricing Component
 const Pricing = () => {
+  const { appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [materialPricings, setMaterialPricings] = useState([]);
   const [editingPricing, setEditingPricing] = useState(null);
   const [newPricing, setNewPricing] = useState({
@@ -10841,7 +10886,7 @@ const Pricing = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">سعر الملي (ج.م)</label>
+            <label className="block text-sm font-medium mb-1">سعر الملي ({currency})</label>
             <input
               type="number"
               step="0.01"
@@ -10853,7 +10898,7 @@ const Pricing = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">تكلفة التصنيع - عميل 1 (ج.م)</label>
+            <label className="block text-sm font-medium mb-1">تكلفة التصنيع - عميل 1 ({currency})</label>
             <input
               type="number"
               step="0.01"
@@ -10865,7 +10910,7 @@ const Pricing = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">تكلفة التصنيع - عميل 2 (ج.م)</label>
+            <label className="block text-sm font-medium mb-1">تكلفة التصنيع - عميل 2 ({currency})</label>
             <input
               type="number"
               step="0.01"
@@ -10877,7 +10922,7 @@ const Pricing = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">تكلفة التصنيع - عميل 3 (ج.م)</label>
+            <label className="block text-sm font-medium mb-1">تكلفة التصنيع - عميل 3 ({currency})</label>
             <input
               type="number"
               step="0.01"
@@ -10948,16 +10993,16 @@ const Pricing = () => {
                     {pricing.inner_diameter}×{pricing.outer_diameter} مم
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {pricing.price_per_mm.toFixed(2)} ج.م
+                    {pricing.price_per_mm.toFixed(2)} {currency}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {pricing.manufacturing_cost_client1.toFixed(2)} ج.م
+                    {pricing.manufacturing_cost_client1.toFixed(2)} {currency}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {pricing.manufacturing_cost_client2.toFixed(2)} ج.م
+                    {pricing.manufacturing_cost_client2.toFixed(2)} {currency}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {pricing.manufacturing_cost_client3.toFixed(2)} ج.م
+                    {pricing.manufacturing_cost_client3.toFixed(2)} {currency}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {pricing.notes || '-'}
@@ -10996,7 +11041,8 @@ const Pricing = () => {
 
 // Main Treasury Component - الخزنة الرئيسية
 const MainTreasury = () => {
-  const { user } = useAuth();
+  const { user, appSettings } = useAuth();
+  const currency = appSettings?.currency || 'ج.م';
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [balance, setBalance] = useState(0);
@@ -11158,7 +11204,7 @@ const MainTreasury = () => {
           <div className="text-left">
             <p className="text-sm text-gray-500">الرصيد الحالي</p>
             <p className="text-4xl font-bold text-green-600">
-              {balance.toFixed(2)} ج.م
+              {balance.toFixed(2)} {currency}
             </p>
           </div>
         </div>
@@ -11198,7 +11244,7 @@ const MainTreasury = () => {
             {/* Amount */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                المبلغ (ج.م)
+                المبلغ ({currency})
               </label>
               <input
                 type="number"
@@ -11369,14 +11415,14 @@ const MainTreasury = () => {
                       : 'text-green-600'
                       }`}>
                       {transaction.transaction_type === 'withdrawal' ? '-' : '+'}
-                      {transaction.amount.toFixed(2)} ج.م
+                      {transaction.amount.toFixed(2)} {currency}
                     </td>
                     <td className="border border-gray-300 p-3">{transaction.description}</td>
                     <td className="border border-gray-300 p-3 text-gray-600">
                       {transaction.reference || '-'}
                     </td>
                     <td className="border border-gray-300 p-3 font-bold text-blue-600">
-                      {transaction.balance_after.toFixed(2)} ج.م
+                      {transaction.balance_after.toFixed(2)} {currency}
                     </td>
                     <td className="border border-gray-300 p-3">{transaction.performed_by}</td>
                   </tr>
@@ -11392,6 +11438,7 @@ const MainTreasury = () => {
 
 // Settings Component (الضبط)
 const Settings = () => {
+  const { fetchAppSettings } = useAuth();
   const [settings, setSettings] = useState({
     company_name: 'ماستر سيل',
     company_name_full: 'شركة ماستر سيل',
@@ -11403,7 +11450,9 @@ const Settings = () => {
     company_mobile: '٠١٠٢٠٦٣٠٦٧٧ - ٠١٠٦٢٣٩٠٨٧٠',
     company_landline: '٠١٠٢٠٦٣٠٦٧٧',
     logo_url: '',
-    system_subtitle: 'نظام إدارة متكامل'
+    system_subtitle: 'نظام إدارة متكامل',
+    currency: 'ج.م',
+    invoice_language: 'ar'
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -11427,6 +11476,8 @@ const Settings = () => {
     setSaving(true);
     try {
       await axios.put(`${API}/settings`, settings);
+      // Refresh global app settings (currency, language)
+      if (fetchAppSettings) fetchAppSettings();
       alert('تم حفظ الإعدادات بنجاح ✅');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -11645,6 +11696,83 @@ const Settings = () => {
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="٠١٠٢٠٦٣٠٦٧٧"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Currency & Invoice Language */}
+      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        <h3 className="text-lg font-bold text-amber-700 mb-4 border-b pb-2">💱 إعدادات العملة ولغة الفاتورة</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">العملة</label>
+            <select
+              value={['ج.م', '$', '€', '£', 'ر.س', 'د.إ', 'د.ك', 'ر.ع', 'د.ب', 'ل.ل', 'ر.ق'].includes(settings.currency) ? settings.currency : '_custom'}
+              onChange={(e) => {
+                if (e.target.value !== '_custom') {
+                  handleChange('currency', e.target.value);
+                }
+              }}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-lg"
+            >
+              <option value="ج.م">ج.م - جنيه مصري</option>
+              <option value="$">$ - دولار أمريكي</option>
+              <option value="€">€ - يورو</option>
+              <option value="£">£ - جنيه إسترليني</option>
+              <option value="ر.س">ر.س - ريال سعودي</option>
+              <option value="د.إ">د.إ - درهم إماراتي</option>
+              <option value="د.ك">د.ك - دينار كويتي</option>
+              <option value="ر.ع">ر.ع - ريال عماني</option>
+              <option value="د.ب">د.ب - دينار بحريني</option>
+              <option value="ل.ل">ل.ل - ليرة لبنانية</option>
+              <option value="ر.ق">ر.ق - ريال قطري</option>
+              <option value="_custom">أخرى (مخصص)</option>
+            </select>
+            {!['ج.م', '$', '€', '£', 'ر.س', 'د.إ', 'د.ك', 'ر.ع', 'د.ب', 'ل.ل', 'ر.ق'].includes(settings.currency) && (
+              <input
+                type="text"
+                value={settings.currency}
+                onChange={(e) => handleChange('currency', e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg mt-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                placeholder="أدخل رمز العملة المخصص"
+              />
+            )}
+            <div className="mt-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-800">
+                <strong>العملة الحالية:</strong> <span className="text-2xl font-bold">{settings.currency}</span>
+              </p>
+              <p className="text-xs text-amber-600 mt-1">ستظهر هذه العملة في جميع أنحاء الموقع والفواتير</p>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">لغة الفاتورة</label>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleChange('invoice_language', 'ar')}
+                className={`flex-1 p-4 rounded-xl border-2 transition-all text-center ${settings.invoice_language === 'ar'
+                  ? 'border-amber-500 bg-amber-50 shadow-md'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+              >
+                <div className="text-3xl mb-2">🇪🇬</div>
+                <div className="font-bold text-lg">العربية</div>
+                <div className="text-xs text-gray-500 mt-1">فاتورة - عرض سعر</div>
+              </button>
+              <button
+                onClick={() => handleChange('invoice_language', 'en')}
+                className={`flex-1 p-4 rounded-xl border-2 transition-all text-center ${settings.invoice_language === 'en'
+                  ? 'border-amber-500 bg-amber-50 shadow-md'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+              >
+                <div className="text-3xl mb-2">🇬🇧</div>
+                <div className="font-bold text-lg">English</div>
+                <div className="text-xs text-gray-500 mt-1">Invoice - Quotation</div>
+              </button>
+            </div>
+            <div className="mt-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-xs text-amber-600">لغة الفاتورة تؤثر فقط على طباعة الفاتورة، واجهة الموقع تبقى بالعربية</p>
+            </div>
           </div>
         </div>
       </div>

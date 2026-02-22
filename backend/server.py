@@ -4169,7 +4169,9 @@ DEFAULT_SETTINGS = {
     "company_mobile": "٠١٠٢٠٦٣٠٦٧٧ - ٠١٠٦٢٣٩٠٨٧٠",
     "company_landline": "٠١٠٢٠٦٣٠٦٧٧",
     "logo_url": "https://customer-assets.emergentagent.com/job_oilseal-mgmt/artifacts/42i3e7yn_WhatsApp%20Image%202025-07-31%20at%2015.14.10_e8c55120.jpg",
-    "system_subtitle": "نظام إدارة متكامل"
+    "system_subtitle": "نظام إدارة متكامل",
+    "currency": "ج.م",
+    "invoice_language": "ar"
 }
 
 @api_router.get("/settings")

@@ -2742,19 +2742,20 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
       const res = await axios.get(`${API}/settings`);
       s = res.data;
     } catch (e) { console.error('Settings fetch error:', e); }
-    const companyNameFull = s.company_name_full || 'شركة ماستر سيل';
-    const companySubtitle = s.company_subtitle || 'تصنيع جميع أنواع الأويل سيل';
-    const companyDetails1 = s.company_details_1 || 'جميع الأقطار حتى ٥٠٠مل';
-    const companyDetails2 = s.company_details_2 || 'هيدروليك - نيوماتيك';
-    const companyAddress = s.company_address || 'الحرفيين - السلام - أمام السوبر جيت';
-    const companyMobile = s.company_mobile || '٠١٠٢٠٦٣٠٦٧٧ - ٠١٠٦٢٣٩٠٨٧٠';
-    const companyLandline = s.company_landline || '٠١٠٢٠٦٣٠٦٧٧';
-    const logoUrl = s.logo_url || 'https://customer-assets.emergentagent.com/job_oilseal-mgmt/artifacts/42i3e7yn_WhatsApp%20Image%202025-07-31%20at%2015.14.10_e8c55120.jpg';
     const cur = s.currency || 'ج.م';
     const lang = s.invoice_language || 'ar';
     const isEn = lang === 'en';
     const dir = isEn ? 'ltr' : 'rtl';
     const textAlign = isEn ? 'left' : 'right';
+    // Use English fields when available for English invoice, fallback to Arabic
+    const companyNameFull = isEn && s.company_name_full_en ? s.company_name_full_en : (s.company_name_full || 'شركة ماستر سيل');
+    const companySubtitle = isEn && s.company_subtitle_en ? s.company_subtitle_en : (s.company_subtitle || 'تصنيع جميع أنواع الأويل سيل');
+    const companyDetails1 = isEn && s.company_details_1_en ? s.company_details_1_en : (s.company_details_1 || 'جميع الأقطار حتى ٥٠٠مل');
+    const companyDetails2 = isEn && s.company_details_2_en ? s.company_details_2_en : (s.company_details_2 || 'هيدروليك - نيوماتيك');
+    const companyAddress = isEn && s.company_address_en ? s.company_address_en : (s.company_address || 'الحرفيين - السلام - أمام السوبر جيت');
+    const companyMobile = isEn && s.company_mobile_en ? s.company_mobile_en : (s.company_mobile || '٠١٠٢٠٦٣٠٦٧٧ - ٠١٠٦٢٣٩٠٨٧٠');
+    const companyLandline = isEn && s.company_landline_en ? s.company_landline_en : (s.company_landline || '٠١٠٢٠٦٣٠٦٧٧');
+    const logoUrl = s.logo_url || 'https://customer-assets.emergentagent.com/job_oilseal-mgmt/artifacts/42i3e7yn_WhatsApp%20Image%202025-07-31%20at%2015.14.10_e8c55120.jpg';
 
     const printContent = `
       <!DOCTYPE html>
@@ -5625,17 +5626,23 @@ const Invoices = () => {
       const res = await axios.get(`${API}/settings`);
       s = res.data;
     } catch (e) { console.error('Settings fetch error:', e); }
-    const companyNameFull = s.company_name_full || 'شركة ماستر سيل';
-    const companySubtitle = s.company_subtitle || 'تصنيع جميع أنواع الأويل سيل';
-    const companyDetails1 = s.company_details_1 || 'جميع الأقطار حتى ٥٠٠مل';
-    const companyDetails2 = s.company_details_2 || 'هيدروليك - نيوماتيك';
-    const companyAddress = s.company_address || 'الحرفيين - السلام - أمام السوبر جيت';
-    const companyMobile = s.company_mobile || '٠١٠٢٠٦٣٠٦٧٧ - ٠١٠٦٢٣٩٠٨٧٠';
-    const companyLandline = s.company_landline || '٠١٠٢٠٦٣٠٦٧٧';
+    const cur = s.currency || 'ج.م';
+    const lang = s.invoice_language || 'ar';
+    const isEn = lang === 'en';
+    const dir = isEn ? 'ltr' : 'rtl';
+    const textAlign = isEn ? 'left' : 'right';
+    // Use English fields when available for English invoice, fallback to Arabic
+    const companyNameFull = isEn && s.company_name_full_en ? s.company_name_full_en : (s.company_name_full || 'شركة ماستر سيل');
+    const companySubtitle = isEn && s.company_subtitle_en ? s.company_subtitle_en : (s.company_subtitle || 'تصنيع جميع أنواع الأويل سيل');
+    const companyDetails1 = isEn && s.company_details_1_en ? s.company_details_1_en : (s.company_details_1 || 'جميع الأقطار حتى ٥٠٠مل');
+    const companyDetails2 = isEn && s.company_details_2_en ? s.company_details_2_en : (s.company_details_2 || 'هيدروليك - نيوماتيك');
+    const companyAddress = isEn && s.company_address_en ? s.company_address_en : (s.company_address || 'الحرفيين - السلام - أمام السوبر جيت');
+    const companyMobile = isEn && s.company_mobile_en ? s.company_mobile_en : (s.company_mobile || '٠١٠٢٠٦٣٠٦٧٧ - ٠١٠٦٢٣٩٠٨٧٠');
+    const companyLandline = isEn && s.company_landline_en ? s.company_landline_en : (s.company_landline || '٠١٠٢٠٦٣٠٦٧٧');
     const logoUrl = s.logo_url || 'https://customer-assets.emergentagent.com/job_oilseal-mgmt/artifacts/42i3e7yn_WhatsApp%20Image%202025-07-31%20at%2015.14.10_e8c55120.jpg';
     const printContent = `
       <!DOCTYPE html>
-      <html dir="rtl">
+      <html dir="${dir}">
       <head>
         <meta charset="UTF-8">
         <style>
@@ -5643,7 +5650,7 @@ const Invoices = () => {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            direction: rtl;
+            direction: ${dir};
             font-size: 15px;
           }
           .header {
@@ -5655,7 +5662,7 @@ const Invoices = () => {
             margin-bottom: 20px;
           }
           .company-info {
-            text-align: right;
+            text-align: ${textAlign};
           }
           .company-name {
             font-size: 32px;
@@ -5698,10 +5705,10 @@ const Invoices = () => {
             margin: 20px 0;
           }
           .customer-details {
-            text-align: right;
+            text-align: ${textAlign};
           }
           .date-info {
-            text-align: left;
+            text-align: ${isEn ? 'right' : 'left'};
           }
           .products-table {
             width: 100%;
@@ -5729,7 +5736,7 @@ const Invoices = () => {
             color: #666;
           }
           .total-section {
-            text-align: left;
+            text-align: ${isEn ? 'right' : 'left'};
             margin-top: 10px;
           }
           .total-amount {
@@ -5759,7 +5766,7 @@ const Invoices = () => {
             <img src="${logoUrl}" 
                  alt="Logo" 
                  style="max-width: 120px; max-height: 80px; margin-bottom: 10px;">
-            <div class="invoice-title">${invoice.invoice_title || 'عرض سعر'}</div>
+            <div class="invoice-title">${isEn ? (invoice.invoice_title === 'فاتورة' ? 'Invoice' : invoice.invoice_title === 'عرض سعر' ? 'Quotation' : invoice.invoice_title || 'Quotation') : (invoice.invoice_title || 'عرض سعر')}</div>
             <div class="invoice-number">${invoice.invoice_number}</div>
           </div>
         </div>
@@ -5767,12 +5774,12 @@ const Invoices = () => {
         <!-- Customer and Date Info -->
         <div class="customer-info">
           <div class="customer-details">
-            <p><strong>السادة:</strong> ${invoice.customer_name}</p>
-            <p><strong>العنوان:</strong> ${invoice.customer_address || '........................'}</p>
+            <p><strong>${isEn ? 'To:' : 'السادة:'}</strong> ${invoice.customer_name}</p>
+            <p><strong>${isEn ? 'Address:' : 'العنوان:'}</strong> ${invoice.customer_address || '........................'}</p>
           </div>
           <div class="date-info">
-            <p><strong>تحرير في:</strong> ${new Date(invoice.date).toLocaleDateString('ar-EG')}</p>
-            <p><strong>Date:</strong> ${new Date(invoice.date).toLocaleDateString('en-GB')}</p>
+            <p><strong>${isEn ? 'Date:' : 'تحرير في:'}</strong> ${isEn ? new Date(invoice.date).toLocaleDateString('en-GB') : new Date(invoice.date).toLocaleDateString('ar-EG')}</p>
+            ${isEn ? '' : `<p><strong>Date:</strong> ${new Date(invoice.date).toLocaleDateString('en-GB')}</p>`}
           </div>
         </div>
 
@@ -5780,11 +5787,11 @@ const Invoices = () => {
         <table class="products-table">
           <thead>
             <tr>
-              <th style="width: 60px;">المسلسل<br>Item</th>
-              <th style="width: 80px;">الكمية<br>QTY</th>
-              <th style="width: 200px;">Description<br>المواصفات</th>
-              <th style="width: 100px;">سعر الوحدة<br>Unit Price</th>
-              <th style="width: 100px;">إجمالي<br>Total</th>
+              <th style="width: 60px;">${isEn ? 'Item' : 'المسلسل<br>Item'}</th>
+              <th style="width: 80px;">${isEn ? 'Qty' : 'الكمية<br>QTY'}</th>
+              <th style="width: 200px;">${isEn ? 'Description' : 'Description<br>المواصفات'}</th>
+              <th style="width: 100px;">${isEn ? 'Unit Price' : 'سعر الوحدة<br>Unit Price'}</th>
+              <th style="width: 100px;">${isEn ? 'Total' : 'إجمالي<br>Total'}</th>
             </tr>
           </thead>
           <tbody>
@@ -5792,15 +5799,15 @@ const Invoices = () => {
               <tr>
                 <td>${index + 1}</td>
                 <td>${item.quantity}</td>
-                <td style="text-align: right;">
+                <td style="text-align: ${textAlign};">
                   ${item.local_product_details ?
         `${item.local_product_details.product_size} - ${item.local_product_details.product_type}` :
         `${item.seal_type} - ${item.material_type}<br>
-                    <small>${item.inner_diameter} × ${item.outer_diameter} × ${item.height} مم${item.wall_height ? ` (ارتفاع الحيطة: ${item.wall_height} مم)` : ""}</small>`
+                    <small>${item.inner_diameter} × ${item.outer_diameter} × ${item.height} ${isEn ? 'mm' : 'مم'}${item.wall_height ? ` (${isEn ? 'wall height' : 'ارتفاع الحيطة'}: ${item.wall_height} ${isEn ? 'mm' : 'مم'})` : ""}</small>`
       }
                 </td>
-                <td>${currency} ${item.unit_price.toFixed(2)}</td>
-                <td>${currency} ${item.total_price.toFixed(2)}</td>
+                <td>${cur} ${item.unit_price.toFixed(2)}</td>
+                <td>${cur} ${item.total_price.toFixed(2)}</td>
               </tr>
             `).join('')}
             <!-- Empty rows for additional items -->
@@ -5818,15 +5825,15 @@ const Invoices = () => {
 
         <!-- Total Section -->
         <div class="total-section">
-          <div style="text-align: left; margin-bottom: 10px;">
+          <div style="text-align: ${isEn ? 'right' : 'left'}; margin-bottom: 10px;">
             ${invoice.subtotal ? `
               <div style="margin-bottom: 5px;">
-                <span>المجموع الفرعي: ${currency} ${invoice.subtotal.toFixed(2)}</span>
+                <span>${isEn ? 'Subtotal' : 'المجموع الفرعي'}: ${cur} ${invoice.subtotal.toFixed(2)}</span>
               </div>
             ` : ''}
             ${invoice.discount && invoice.discount > 0 ? `
               <div style="margin-bottom: 5px; color: #d32f2f;">
-                <span>الخصم: - ${currency} ${invoice.discount.toFixed(2)}</span>
+                <span>${isEn ? 'Discount' : 'الخصم'}: - ${cur} ${invoice.discount.toFixed(2)}</span>
                 ${invoice.discount_type === 'percentage' && invoice.discount_value ?
           ` <small>(${invoice.discount_value}%)</small>` : ''}
               </div>
@@ -5834,33 +5841,33 @@ const Invoices = () => {
             ` : ''}
           </div>
           <div class="total-amount">
-            الإجمالي النهائي: ${currency} ${(invoice.total_after_discount || invoice.total_amount).toFixed(2)}
+            ${isEn ? 'Grand Total' : 'الإجمالي النهائي'}: ${cur} ${(invoice.total_after_discount || invoice.total_amount).toFixed(2)}
           </div>
         </div>
 
         <!-- Additional Info -->
         <div style="margin-top: 20px; text-align: center; font-size: 13px;">
-          <p><strong>ملحوظة:</strong> فقط وقدره</p>
+          <p><strong>${isEn ? 'Note:' : 'ملحوظة:'}</strong> ${isEn ? 'Amount in words:' : 'فقط وقدره'}</p>
           <div style="height: 30px; border-bottom: 1px solid #000; margin: 10px 40px;"></div>
         </div>
 
         <!-- Footer -->
         <div class="footer">
           <div>
-            <p><strong>التوقيع:</strong></p>
-            <p>موبايل: ${companyMobile}</p>
-            <p>تليفون: ${companyLandline}</p>
+            <p><strong>${isEn ? 'Signature:' : 'التوقيع:'}</strong></p>
+            <p>${isEn ? 'Mobile' : 'موبايل'}: ${companyMobile}</p>
+            <p>${isEn ? 'Phone' : 'تليفون'}: ${companyLandline}</p>
           </div>
-          <div style="text-align: left;">
-            <p><strong>المستلم:</strong></p>
+          <div style="text-align: ${isEn ? 'right' : 'left'};">
+            <p><strong>${isEn ? 'Received by:' : 'المستلم:'}</strong></p>
             <p>${companyAddress}</p>
-            <p>موبايل: ${companyMobile}</p>
+            <p>${isEn ? 'Mobile' : 'موبايل'}: ${companyMobile}</p>
           </div>
         </div>
 
         <!-- Note -->
         <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
-          <p>يقر المشتري بأنه قام بمعاينة البضاعة وقبولها</p>
+          <p>${isEn ? 'The buyer acknowledges that the goods have been inspected and accepted' : 'يقر المشتري بأنه قام بمعاينة البضاعة وقبولها'}</p>
         </div>
       </body>
       </html>
@@ -11452,7 +11459,14 @@ const Settings = () => {
     logo_url: '',
     system_subtitle: 'نظام إدارة متكامل',
     currency: 'ج.م',
-    invoice_language: 'ar'
+    invoice_language: 'ar',
+    company_name_full_en: '',
+    company_subtitle_en: '',
+    company_details_1_en: '',
+    company_details_2_en: '',
+    company_address_en: '',
+    company_mobile_en: '',
+    company_landline_en: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -11695,6 +11709,91 @@ const Settings = () => {
               onChange={(e) => handleChange('company_phone', e.target.value)}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="٠١٠٢٠٦٣٠٦٧٧"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* English Company Info for Invoice */}
+      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        <h3 className="text-lg font-bold text-indigo-700 mb-4 border-b pb-2">🌐 Company Info (English) - بيانات الشركة بالإنجليزية</h3>
+        <p className="text-sm text-gray-500 mb-4">هذه البيانات تظهر في الفاتورة عند اختيار اللغة الإنجليزية</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Company Name (Full)</label>
+            <input
+              type="text"
+              value={settings.company_name_full_en}
+              onChange={(e) => handleChange('company_name_full_en', e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Faster Seal Co."
+              dir="ltr"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Business Description (Line 1)</label>
+            <input
+              type="text"
+              value={settings.company_subtitle_en}
+              onChange={(e) => handleChange('company_subtitle_en', e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Manufacturing All Types of Oil Seals"
+              dir="ltr"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Business Description (Line 2)</label>
+            <input
+              type="text"
+              value={settings.company_details_1_en}
+              onChange={(e) => handleChange('company_details_1_en', e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="All Diameters up to 500mm"
+              dir="ltr"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Business Description (Line 3)</label>
+            <input
+              type="text"
+              value={settings.company_details_2_en}
+              onChange={(e) => handleChange('company_details_2_en', e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Hydraulic - Pneumatic"
+              dir="ltr"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+            <input
+              type="text"
+              value={settings.company_address_en}
+              onChange={(e) => handleChange('company_address_en', e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Al-Herafeyeen - Al-Salam"
+              dir="ltr"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Numbers</label>
+            <input
+              type="text"
+              value={settings.company_mobile_en}
+              onChange={(e) => handleChange('company_mobile_en', e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="01020630677 - 01062390870"
+              dir="ltr"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+            <input
+              type="text"
+              value={settings.company_landline_en}
+              onChange={(e) => handleChange('company_landline_en', e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="01020630677"
+              dir="ltr"
             />
           </div>
         </div>

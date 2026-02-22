@@ -1722,12 +1722,12 @@ const Local = () => {
 const Dashboard = () => {
   const { user } = useAuth();
 
-  // Only Elsawy can access dashboard
-  if (user?.username !== 'Elsawy') {
+  // Only Elsawy and Faster can access dashboard
+  if (user?.username !== 'Elsawy' && user?.username !== 'Faster') {
     return (
       <div className="p-6" dir="rtl">
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          <strong>غير مسموح!</strong> لوحة التحكم مخصصة للمستخدم Elsawy فقط.
+          <strong>غير مسموح!</strong> لوحة التحكم مخصصة للمدير فقط.
         </div>
       </div>
     );

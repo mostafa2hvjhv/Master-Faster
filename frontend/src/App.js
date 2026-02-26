@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+﻿import React, { useState, useEffect, createContext, useContext } from 'react';
 import './App.css';
 import axios from 'axios';
 
@@ -250,13 +250,11 @@ const Navigation = ({ currentPage, onPageChange }) => {
     { key: 'inventory', label: 'المخزن الخامات', icon: '📦' },
     { key: 'stock', label: 'مخزن إنتاج', icon: '🏪' },
     { key: 'local', label: 'موردين', icon: '🏭' },
-    { key: 'settle-account', label: 'تصفية حساب', icon: '💵' },
-    { key: 'customer-statement', label: 'كشف الحساب', icon: '📋' },
+    { key: 'customers', label: 'إدارة العملاء', icon: '👥' },
     { key: 'work-orders', label: 'أمر شغل', icon: '⚙️' },
     { key: 'main-treasury', label: 'الخزنة الرئيسية', icon: '🔐' },
     { key: 'deleted-invoices', label: 'الفواتير المحذوفة', icon: '🗑️' },
     { key: 'backup', label: 'النسخ الاحتياطي', icon: '💾' },
-    { key: 'customers', label: 'إدارة العملاء', icon: '👥' },
     { key: 'dashboard', label: 'لوحة التحكم', icon: '📊' },
     { key: 'daily-sales', label: 'كشف مبيعات يومي', icon: '📋' },
     { key: 'revenue', label: 'الإيرادات', icon: '📈' },
@@ -275,13 +273,11 @@ const Navigation = ({ currentPage, onPageChange }) => {
     { key: 'inventory', label: 'المخزن الخامات', icon: '📦' },
     { key: 'stock', label: 'مخزن إنتاج', icon: '🏪' },
     { key: 'local', label: 'موردين', icon: '🏭' },
-    { key: 'settle-account', label: 'تصفية حساب', icon: '💵' },
-    { key: 'customer-statement', label: 'كشف الحساب', icon: '📋' },
+    { key: 'customers', label: 'إدارة العملاء', icon: '👥' },
     { key: 'work-orders', label: 'أمر شغل', icon: '⚙️' },
     { key: 'main-treasury', label: 'الخزنة الرئيسية', icon: '🔐' },
     { key: 'deleted-invoices', label: 'الفواتير المحذوفة', icon: '🗑️' },
     { key: 'backup', label: 'النسخ الاحتياطي', icon: '💾' },
-    { key: 'customers', label: 'إدارة العملاء', icon: '👥' },
     { key: 'dashboard', label: 'لوحة التحكم', icon: '📊' },
     { key: 'daily-sales', label: 'كشف مبيعات يومي', icon: '📋' },
     { key: 'revenue', label: 'الإيرادات', icon: '📈' },
@@ -299,13 +295,11 @@ const Navigation = ({ currentPage, onPageChange }) => {
     { key: 'inventory', label: 'المخزن الخامات', icon: '📦' },
     { key: 'stock', label: 'مخزن إنتاج', icon: '🏪' },
     { key: 'local', label: 'موردين', icon: '🏭' },
-    { key: 'settle-account', label: 'تصفية حساب', icon: '💵' },
-    { key: 'customer-statement', label: 'كشف الحساب', icon: '📋' },
+    { key: 'customers', label: 'إدارة العملاء', icon: '👥' },
     { key: 'work-orders', label: 'أمر شغل', icon: '⚙️' },
     { key: 'main-treasury', label: 'الخزنة الرئيسية', icon: '🔐' },
     { key: 'deleted-invoices', label: 'الفواتير المحذوفة', icon: '🗑️' },
     { key: 'backup', label: 'النسخ الاحتياطي', icon: '💾' },
-    { key: 'customers', label: 'إدارة العملاء', icon: '👥' },
     { key: 'dashboard', label: 'لوحة التحكم', icon: '📊' },
     { key: 'daily-sales', label: 'كشف مبيعات يومي', icon: '📋' },
     { key: 'revenue', label: 'الإيرادات', icon: '📈' },
@@ -323,7 +317,7 @@ const Navigation = ({ currentPage, onPageChange }) => {
     { key: 'inventory', label: 'المخزن الخامات', icon: '📦' },
     { key: 'stock', label: 'مخزن إنتاج', icon: '🏪' },
     { key: 'local', label: 'موردين', icon: '🏭' },
-    { key: 'customer-statement', label: 'كشف الحساب', icon: '📋' },
+    { key: 'customers', label: 'إدارة العملاء', icon: '👥' },
     { key: 'work-orders', label: 'أمر شغل', icon: '⚙️' },
     { key: 'deleted-invoices', label: 'الفواتير المحذوفة', icon: '🗑️' },
     { key: 'daily-sales', label: 'كشف مبيعات يومي', icon: '📋' },
@@ -10713,285 +10707,630 @@ const Users = () => {
 };
 
 // Customer Management Component
-const CustomerManagement = () => {
-  const { appSettings } = useAuth();
+const CustomerHub = () => {
+  const { user, appSettings } = useAuth();
   const currency = appSettings?.currency || 'ج.م';
   const [customers, setCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingId, setEditingId] = useState(null);
-  const [editData, setEditData] = useState({});
-  const [balances, setBalances] = useState({});
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', address: '' });
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+  const [activeTab, setActiveTab] = useState('info');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
-
-  const fetchCustomers = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get(`${API}/customers`);
-      setCustomers(response.data || []);
-      // Fetch balances for all customers
-      const balancePromises = (response.data || []).map(c =>
-        axios.get(`${API}/customers/${c.id}/balance`).then(r => ({ id: c.id, ...r.data })).catch(() => ({ id: c.id, total_debt: 0, unpaid_invoices_count: 0 }))
-      );
-      const balanceResults = await Promise.all(balancePromises);
-      const balanceMap = {};
-      balanceResults.forEach(b => { balanceMap[b.id] = b; });
-      setBalances(balanceMap);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-    }
-    setLoading(false);
-  };
-
-  const addCustomer = async () => {
-    if (!newCustomer.name.trim()) {
-      alert('الرجاء إدخال اسم العميل');
-      return;
-    }
-    try {
-      await axios.post(`${API}/customers`, newCustomer);
-      alert('تم إضافة العميل بنجاح ✅');
-      setNewCustomer({ name: '', phone: '', address: '' });
-      setShowAddForm(false);
-      fetchCustomers();
-    } catch (error) {
-      alert('خطأ: ' + (error.response?.data?.detail || error.message));
-    }
-  };
-
+  // Info tab state
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState({ name: '', phone: '', address: '' });
   const editDataRef = React.useRef(editData);
   React.useEffect(() => { editDataRef.current = editData; }, [editData]);
+  const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', address: '' });
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [balances, setBalances] = useState({});
 
-  const startEdit = (customer) => {
-    const data = { name: customer.name, phone: customer.phone || '', address: customer.address || '' };
-    setEditingId(customer.id);
+  // Statement tab state
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [statement, setStatement] = useState(null);
+
+  // Settlement tab state
+  const [deferredInvoices, setDeferredInvoices] = useState([]);
+  const [amountPaid, setAmountPaid] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('نقدي');
+  const [settleResult, setSettleResult] = useState(null);
+  const [suppliers, setSuppliers] = useState([]);
+  const [isCustomerAlsoSupplier, setIsCustomerAlsoSupplier] = useState(false);
+  const [supplierBalance, setSupplierBalance] = useState(0);
+
+  useEffect(() => { fetchCustomers(); fetchSuppliers(); }, []);
+
+  const fetchCustomers = async () => {
+    try {
+      const response = await axios.get(`${API}/customers`);
+      const sorted = (response.data || []).sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+      setCustomers(sorted);
+      // Fetch balances
+      const balObj = {};
+      for (const c of sorted) {
+        try {
+          const bRes = await axios.get(`${API}/customers/${c.id}/balance`);
+          balObj[c.id] = bRes.data;
+        } catch { balObj[c.id] = { total_debt: 0, unpaid_invoices_count: 0 }; }
+      }
+      setBalances(balObj);
+    } catch (error) { console.error('Error:', error); }
+  };
+
+  const fetchSuppliers = async () => {
+    try {
+      const response = await axios.get(`${API}/suppliers`);
+      setSuppliers(response.data || []);
+    } catch (error) { console.error('Error:', error); }
+  };
+
+  const formatNumber = (n) => (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // === CUSTOMER SELECTION ===
+  const selectCustomer = (customerId) => {
+    setSelectedCustomerId(customerId);
+    setStatement(null);
+    setSettleResult(null);
+    setEditingId(null);
+    fetchCustomerInvoices(customerId);
+    checkSupplierStatus(customerId);
+  };
+
+  const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+
+  // === INFO TAB ===
+  const startEdit = () => {
+    if (!selectedCustomer) return;
+    const data = { name: selectedCustomer.name, phone: selectedCustomer.phone || '', address: selectedCustomer.address || '' };
+    setEditingId(selectedCustomer.id);
     setEditData(data);
     editDataRef.current = data;
   };
 
-  const saveEdit = async (customerId) => {
+  const saveEdit = async () => {
     const dataToSend = editDataRef.current;
-    console.log('Saving customer:', customerId, 'Data:', dataToSend);
     try {
-      await axios.put(`${API}/customers/${customerId}`, dataToSend);
+      await axios.put(`${API}/customers/${selectedCustomerId}`, dataToSend);
       alert('تم تحديث بيانات العميل ✅');
       setEditingId(null);
       fetchCustomers();
-    } catch (error) {
-      alert('خطأ: ' + (error.response?.data?.detail || error.message));
-    }
+    } catch (error) { alert('خطأ: ' + (error.response?.data?.detail || error.message)); }
   };
 
-  const deleteCustomer = async (customerId, name) => {
-    if (!window.confirm(`هل أنت متأكد من حذف العميل "${name}"؟`)) return;
+  const deleteCustomer = async () => {
+    if (!selectedCustomer) return;
+    if (!window.confirm(`هل أنت متأكد من حذف العميل "${selectedCustomer.name}"؟`)) return;
     try {
-      await axios.delete(`${API}/customers/${customerId}`);
+      await axios.delete(`${API}/customers/${selectedCustomerId}`);
       alert('تم حذف العميل ✅');
+      setSelectedCustomerId(null);
       fetchCustomers();
+    } catch (error) { alert('خطأ: ' + (error.response?.data?.detail || error.message)); }
+  };
+
+  const addCustomer = async () => {
+    if (!newCustomer.name.trim()) { alert('الرجاء إدخال اسم العميل'); return; }
+    try {
+      await axios.post(`${API}/customers`, newCustomer);
+      alert('تم إضافة العميل ✅');
+      setNewCustomer({ name: '', phone: '', address: '' });
+      setShowAddForm(false);
+      fetchCustomers();
+    } catch (error) { alert('خطأ: ' + (error.response?.data?.detail || error.message)); }
+  };
+
+  // === STATEMENT TAB ===
+  const fetchStatement = async () => {
+    if (!selectedCustomerId) return;
+    setLoading(true);
+    try {
+      const params = {};
+      if (fromDate) params.from_date = fromDate;
+      if (toDate) params.to_date = toDate;
+      const response = await axios.get(`${API}/customer-statement/${selectedCustomerId}`, { params });
+      setStatement(response.data);
     } catch (error) {
       alert('خطأ: ' + (error.response?.data?.detail || error.message));
+    } finally { setLoading(false); }
+  };
+
+  const printStatement = () => {
+    if (!statement) return;
+    const customer = statement.customer;
+    const transactions = statement.transactions || [];
+    const summary = statement.summary || {};
+    const printWindow = window.open('', '', 'width=800,height=600');
+    printWindow.document.write(`<!DOCTYPE html><html dir="rtl"><head><title>كشف حساب - ${customer.name}</title>
+      <style>body{font-family:Arial,sans-serif;padding:20px;direction:rtl}.header{text-align:center;margin-bottom:30px;border-bottom:2px solid #333;padding-bottom:10px}
+      .info-section{margin-bottom:20px;display:flex;justify-content:space-between}.info-box{border:1px solid #ddd;padding:10px;border-radius:5px;width:45%}
+      table{width:100%;border-collapse:collapse;margin-bottom:20px}th,td{border:1px solid #ddd;padding:8px;text-align:center}th{background-color:#f2f2f2;font-weight:bold}
+      .summary{margin-top:20px;border-top:2px solid #333;padding-top:10px}.summary-row{display:flex;justify-content:space-between;padding:5px 0;font-size:14px}
+      .final-balance{font-size:18px;font-weight:bold;color:${summary.final_balance >= 0 ? 'green' : 'red'}}@media print{body{padding:10px}}</style></head>
+      <body><div class="header"><h1>كشف حساب عام</h1><p>مرتب بتواريخ القيود</p></div>
+      <div class="info-section"><div class="info-box"><p><strong>اسم الحساب:</strong> ${customer.name}</p><p><strong>رقم الهاتف:</strong> ${customer.phone || 'غير محدد'}</p></div>
+      <div class="info-box"><p><strong>من تاريخ:</strong> ${statement.period.from_date}</p><p><strong>إلى تاريخ:</strong> ${statement.period.to_date}</p>
+      <p><strong>تاريخ الطباعة:</strong> ${new Date().toLocaleDateString('ar-EG')}</p></div></div>
+      <table><thead><tr><th>التاريخ</th><th>نوع القيد</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr></thead>
+      <tbody>${transactions.map(t => `<tr><td>${new Date(t.date).toLocaleDateString('ar-EG')}</td><td>${t.type}</td><td>${t.description}</td>
+      <td>${t.debit > 0 ? t.debit.toFixed(2) : '-'}</td><td>${t.credit > 0 ? t.credit.toFixed(2) : '-'}</td><td>${t.balance.toFixed(2)}</td></tr>`).join('')}</tbody></table>
+      <div class="summary"><div class="summary-row"><span><strong>إجمالي الدائن:</strong></span><span>${summary.total_credit?.toFixed(2) || '0.00'} ${currency}</span></div>
+      <div class="summary-row"><span><strong>إجمالي المدين:</strong></span><span>${summary.total_debit?.toFixed(2) || '0.00'} ${currency}</span></div>
+      <div class="summary-row final-balance"><span><strong>الرصيد النهائي:</strong></span><span>${summary.final_balance?.toFixed(2) || '0.00'} ${currency}</span></div></div>
+      <p style="margin-top:30px;text-align:left">المحاسب يعتمد،،،</p></body></html>`);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  // === SETTLEMENT TAB ===
+  const fetchCustomerInvoices = async (customerId) => {
+    try {
+      const response = await axios.get(`${API}/invoices`);
+      const customer = customers.find(c => c.id === customerId);
+      if (customer) {
+        const inv = response.data.filter(i => i.customer_name === customer.name && i.payment_method === 'آجل' && i.remaining_amount > 0)
+          .sort((a, b) => new Date(a.date) - new Date(b.date));
+        setDeferredInvoices(inv);
+      }
+    } catch (error) { console.error('Error:', error); }
+  };
+
+  const checkSupplierStatus = (customerId) => {
+    const customer = customers.find(c => c.id === customerId);
+    if (customer) {
+      const supplier = suppliers.find(s => s.name === customer.name);
+      if (supplier) {
+        const balance = supplier.current_balance !== undefined ? supplier.current_balance : (supplier.balance || 0);
+        setIsCustomerAlsoSupplier(balance > 0);
+        setSupplierBalance(balance);
+      } else { setIsCustomerAlsoSupplier(false); setSupplierBalance(0); }
     }
   };
 
+  const handleSettleAccount = async () => {
+    if (!amountPaid || parseFloat(amountPaid) <= 0) { alert('الرجاء إدخال مبلغ صحيح'); return; }
+    if (!window.confirm(`هل أنت متأكد من تصفية حساب العميل بمبلغ ${parseFloat(amountPaid).toFixed(2)} ${currency}؟\n\nسيتم توزيع المبلغ على الفواتير الآجلة من الأقدم للأحدث`)) return;
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API}/customers/${selectedCustomerId}/settle-account`, null, {
+        params: { amount_paid: parseFloat(amountPaid), payment_method: paymentMethod, username: user?.username }
+      });
+      setSettleResult(response.data);
+      setAmountPaid('');
+      fetchCustomerInvoices(selectedCustomerId);
+      fetchCustomers();
+      let msg = `✅ ${response.data.message}\n\n💰 المبلغ المدفوع: ${response.data.total_amount_paid.toFixed(2)} ${currency}\n📊 تم توزيع: ${response.data.amount_distributed.toFixed(2)} ${currency}\n`;
+      if (response.data.remaining_amount > 0) msg += `💵 متبقي: ${response.data.remaining_amount.toFixed(2)} ${currency}\n`;
+      alert(msg);
+    } catch (error) { alert(error.response?.data?.detail || 'حدث خطأ في تصفية الحساب'); }
+    finally { setLoading(false); }
+  };
+
+  const handleReconciliation = async () => {
+    const settlementAmount = Math.min(supplierBalance, totalRemaining);
+    if (!window.confirm(`🔄 تسوية الحساب\n\nسيتم تسوية: ${settlementAmount.toFixed(2)} ${currency}\nهل تريد المتابعة؟`)) return;
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API}/customers/${selectedCustomerId}/reconcile-with-supplier`, null, { params: { username: user?.username } });
+      fetchCustomerInvoices(selectedCustomerId);
+      fetchSuppliers();
+      fetchCustomers();
+      alert(`✅ ${response.data.message}\n\nمبلغ التسوية: ${response.data.settlement_amount.toFixed(2)} ${currency}`);
+      setIsCustomerAlsoSupplier(response.data.supplier_new_balance > 0);
+      setSupplierBalance(response.data.supplier_new_balance);
+    } catch (error) { alert(error.response?.data?.detail || 'حدث خطأ في التسوية'); }
+    finally { setLoading(false); }
+  };
+
+  const totalRemaining = deferredInvoices.reduce((sum, inv) => sum + inv.remaining_amount, 0);
   const filteredCustomers = customers.filter(c =>
     c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.phone?.includes(searchTerm) ||
     c.address?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const tabs = [
+    { id: 'info', label: '👤 بيانات العميل', color: 'blue' },
+    { id: 'statement', label: '📋 كشف الحساب', color: 'emerald' },
+    { id: 'settle', label: '💵 تصفية حساب', color: 'purple' },
+  ];
+
+  const totalDebt = Object.values(balances).reduce((sum, b) => sum + (b?.total_debt || 0), 0);
+  const customersWithDebt = Object.values(balances).filter(b => (b?.total_debt || 0) > 0).length;
+
   return (
-    <div className="p-6" dir="rtl">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-blue-600">👥 إدارة العملاء</h2>
-        <div className="flex gap-2">
-          <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
-            {customers.length} عميل
-          </span>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 text-sm"
-          >
-            ➕ إضافة عميل
-          </button>
+    <div className="p-4 bg-gray-50 min-h-screen" dir="rtl">
+      {/* Header */}
+      <div className="bg-gradient-to-l from-blue-600 to-blue-800 text-white p-6 rounded-2xl shadow-lg mb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">👥 إدارة العملاء</h1>
+            <p className="text-blue-200 mt-1">إدارة شاملة للعملاء - كشف الحساب - تصفية الحساب</p>
+          </div>
+          <div className="flex gap-4">
+            <div className="bg-white/20 backdrop-blur rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold">{customers.length}</p>
+              <p className="text-xs text-blue-200">عميل</p>
+            </div>
+            <div className="bg-white/20 backdrop-blur rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold">{customersWithDebt}</p>
+              <p className="text-xs text-blue-200">عليهم ديون</p>
+            </div>
+            <div className="bg-white/20 backdrop-blur rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold">{formatNumber(totalDebt)}</p>
+              <p className="text-xs text-blue-200">إجمالي الديون</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Add Customer Form */}
-      {showAddForm && (
-        <div className="bg-green-50 border border-green-200 p-4 rounded-lg mb-4">
-          <h3 className="font-bold text-green-700 mb-3">إضافة عميل جديد</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input
-              type="text"
-              placeholder="اسم العميل *"
-              value={newCustomer.name}
-              onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
-              className="p-2 border border-gray-300 rounded-lg"
-            />
-            <input
-              type="text"
-              placeholder="رقم الهاتف"
-              value={newCustomer.phone}
-              onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
-              className="p-2 border border-gray-300 rounded-lg"
-            />
-            <input
-              type="text"
-              placeholder="العنوان"
-              value={newCustomer.address}
-              onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
-              className="p-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-          <div className="flex gap-2 mt-3">
-            <button onClick={addCustomer} className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 text-sm">حفظ</button>
-            <button onClick={() => setShowAddForm(false)} className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 text-sm">إلغاء</button>
-          </div>
-        </div>
-      )}
+      <div className="flex gap-6">
+        {/* LEFT: Customer List */}
+        <div className="w-80 flex-shrink-0">
+          <div className="bg-white rounded-2xl shadow-md overflow-hidden sticky top-4">
+            {/* Search + Add */}
+            <div className="p-4 border-b bg-gray-50">
+              <input
+                type="text"
+                placeholder="🔍 بحث بالاسم أو الهاتف..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full p-2.5 border border-gray-300 rounded-xl text-sm focus:border-blue-500 focus:outline-none"
+              />
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="w-full mt-2 bg-blue-500 text-white p-2 rounded-xl text-sm hover:bg-blue-600 transition-colors"
+              >
+                {showAddForm ? '✕ إلغاء' : '➕ إضافة عميل جديد'}
+              </button>
+            </div>
 
-      {/* Search */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="🔍 بحث بالاسم أو الهاتف أو العنوان..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
+            {/* Add Form */}
+            {showAddForm && (
+              <div className="p-4 border-b bg-blue-50">
+                <input type="text" placeholder="اسم العميل *" value={newCustomer.name} onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                  className="w-full p-2 border rounded-lg mb-2 text-sm" />
+                <input type="text" placeholder="رقم الهاتف" value={newCustomer.phone} onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                  className="w-full p-2 border rounded-lg mb-2 text-sm" />
+                <input type="text" placeholder="العنوان" value={newCustomer.address} onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
+                  className="w-full p-2 border rounded-lg mb-2 text-sm" />
+                <button onClick={addCustomer} className="w-full bg-green-500 text-white p-2 rounded-lg text-sm hover:bg-green-600">✅ حفظ</button>
+              </div>
+            )}
 
-      {/* Customers Table */}
-      {loading ? (
-        <div className="text-center py-8 text-gray-500">جاري التحميل...</div>
-      ) : filteredCustomers.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          {searchTerm ? 'لا توجد نتائج للبحث' : 'لا يوجد عملاء'}
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-blue-50">
-              <tr>
-                <th className="p-3 text-right font-bold text-blue-700">#</th>
-                <th className="p-3 text-right font-bold text-blue-700">الاسم</th>
-                <th className="p-3 text-right font-bold text-blue-700">الهاتف</th>
-                <th className="p-3 text-right font-bold text-blue-700">العنوان</th>
-                <th className="p-3 text-right font-bold text-blue-700">المديونية</th>
-                <th className="p-3 text-right font-bold text-blue-700">فواتير غير مدفوعة</th>
-                <th className="p-3 text-center font-bold text-blue-700">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCustomers.map((customer, index) => {
-                const balance = balances[customer.id] || {};
-                const isEditing = editingId === customer.id;
+            {/* Customer List */}
+            <div className="max-h-[calc(100vh-320px)] overflow-y-auto">
+              {filteredCustomers.map(customer => {
+                const bal = balances[customer.id];
+                const debt = bal?.total_debt || 0;
+                const isSelected = selectedCustomerId === customer.id;
                 return (
-                  <tr key={customer.id} className={`border-b hover:bg-gray-50 ${balance.total_debt > 0 ? 'bg-red-50' : ''}`}>
-                    <td className="p-3 text-gray-500">{index + 1}</td>
-                    <td className="p-3">
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editData.name}
-                          onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                          className="p-1 border border-blue-300 rounded w-full"
-                        />
-                      ) : (
-                        <span className="font-bold">{customer.name}</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editData.phone}
-                          onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                          className="p-1 border border-blue-300 rounded w-full"
-                          dir="ltr"
-                        />
-                      ) : (
-                        <span dir="ltr">{customer.phone || '—'}</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editData.address}
-                          onChange={(e) => setEditData({ ...editData, address: e.target.value })}
-                          className="p-1 border border-blue-300 rounded w-full"
-                        />
-                      ) : (
-                        <span>{customer.address || '—'}</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <span className={`font-bold ${balance.total_debt > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        {(balance.total_debt || 0).toLocaleString()} {currency}
-                      </span>
-                    </td>
-                    <td className="p-3 text-center">
-                      {balance.unpaid_invoices_count > 0 ? (
-                        <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-bold">
-                          {balance.unpaid_invoices_count} فاتورة
-                        </span>
-                      ) : (
-                        <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">لا يوجد</span>
-                      )}
-                    </td>
-                    <td className="p-3 text-center">
-                      <div className="flex justify-center gap-1">
-                        {isEditing ? (
-                          <>
-                            <button onClick={() => saveEdit(customer.id)} className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600">حفظ</button>
-                            <button onClick={() => setEditingId(null)} className="bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs hover:bg-gray-400">إلغاء</button>
-                          </>
-                        ) : (
-                          <>
-                            <button onClick={() => startEdit(customer)} className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600">✏️ تعديل</button>
-                            <button onClick={() => deleteCustomer(customer.id, customer.name)} className="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600">🗑️ حذف</button>
-                          </>
-                        )}
+                  <div
+                    key={customer.id}
+                    onClick={() => selectCustomer(customer.id)}
+                    className={`p-3 border-b cursor-pointer transition-all hover:bg-blue-50 ${isSelected ? 'bg-blue-100 border-r-4 border-r-blue-600' : ''}`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className={`font-bold text-sm ${isSelected ? 'text-blue-800' : 'text-gray-800'}`}>{customer.name}</p>
+                        {customer.phone && <p className="text-xs text-gray-500">📞 {customer.phone}</p>}
                       </div>
-                    </td>
-                  </tr>
+                      {debt > 0 && (
+                        <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-bold">
+                          {formatNumber(debt)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+              {filteredCustomers.length === 0 && (
+                <div className="p-6 text-center text-gray-400 text-sm">لا يوجد عملاء</div>
+              )}
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* Summary */}
-      {customers.length > 0 && (
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 p-4 rounded-lg text-center">
-            <div className="text-2xl font-bold text-blue-600">{customers.length}</div>
-            <div className="text-sm text-gray-600">إجمالي العملاء</div>
-          </div>
-          <div className="bg-red-50 p-4 rounded-lg text-center">
-            <div className="text-2xl font-bold text-red-600">
-              {Object.values(balances).reduce((sum, b) => sum + (b.total_debt || 0), 0).toLocaleString()} {currency}
+        {/* RIGHT: Customer Details */}
+        <div className="flex-1">
+          {selectedCustomer ? (
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+              {/* Customer Header */}
+              <div className="bg-gradient-to-l from-gray-100 to-white p-5 border-b">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-800">{selectedCustomer.name}</h2>
+                    <div className="flex gap-4 mt-1 text-sm text-gray-500">
+                      {selectedCustomer.phone && <span>📞 {selectedCustomer.phone}</span>}
+                      {selectedCustomer.address && <span>📍 {selectedCustomer.address}</span>}
+                    </div>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm text-gray-500">الرصيد المستحق</p>
+                    <p className={`text-2xl font-bold ${(balances[selectedCustomerId]?.total_debt || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {formatNumber(balances[selectedCustomerId]?.total_debt || 0)} {currency}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex border-b">
+                {tabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex-1 py-3 px-4 text-sm font-semibold transition-all ${activeTab === tab.id
+                      ? `text-${tab.color}-700 border-b-3 border-${tab.color}-600 bg-${tab.color}-50`
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      }`}
+                    style={activeTab === tab.id ? { borderBottomWidth: '3px' } : {}}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-6">
+                {/* === INFO TAB === */}
+                {activeTab === 'info' && (
+                  <div>
+                    <div className="flex gap-2 mb-6">
+                      {editingId ? (
+                        <>
+                          <button onClick={saveEdit} className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600">💾 حفظ التعديل</button>
+                          <button onClick={() => setEditingId(null)} className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-400">إلغاء</button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={startEdit} className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600">✏️ تعديل البيانات</button>
+                          <button onClick={deleteCustomer} className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600">🗑️ حذف العميل</button>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">الاسم</label>
+                        {editingId ? (
+                          <input type="text" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                            className="w-full p-3 border border-blue-300 rounded-lg" />
+                        ) : (
+                          <p className="p-3 bg-gray-50 rounded-lg font-semibold">{selectedCustomer.name}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
+                        {editingId ? (
+                          <input type="text" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                            className="w-full p-3 border border-blue-300 rounded-lg" />
+                        ) : (
+                          <p className="p-3 bg-gray-50 rounded-lg">{selectedCustomer.phone || 'غير محدد'}</p>
+                        )}
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">العنوان</label>
+                        {editingId ? (
+                          <input type="text" value={editData.address} onChange={(e) => setEditData({ ...editData, address: e.target.value })}
+                            className="w-full p-3 border border-blue-300 rounded-lg" />
+                        ) : (
+                          <p className="p-3 bg-gray-50 rounded-lg">{selectedCustomer.address || 'غير محدد'}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-2 gap-4 mt-6">
+                      <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+                        <p className="text-sm text-red-600">إجمالي المديونية</p>
+                        <p className="text-2xl font-bold text-red-700">{formatNumber(balances[selectedCustomerId]?.total_debt || 0)} {currency}</p>
+                      </div>
+                      <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-center">
+                        <p className="text-sm text-orange-600">فواتير آجلة</p>
+                        <p className="text-2xl font-bold text-orange-700">{deferredInvoices.length}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* === STATEMENT TAB === */}
+                {activeTab === 'statement' && (
+                  <div>
+                    {/* Date Filters */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">من تاريخ</label>
+                        <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)}
+                          className="w-full p-2.5 border border-gray-300 rounded-lg" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">إلى تاريخ</label>
+                        <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)}
+                          className="w-full p-2.5 border border-gray-300 rounded-lg" />
+                      </div>
+                      <div className="flex items-end gap-2">
+                        <button onClick={fetchStatement} disabled={loading}
+                          className={`flex-1 py-2.5 rounded-lg text-white font-semibold ${loading ? 'bg-gray-400' : 'bg-emerald-500 hover:bg-emerald-600'}`}>
+                          {loading ? '⏳ جاري...' : '📋 عرض الكشف'}
+                        </button>
+                        {statement && (
+                          <button onClick={printStatement} className="bg-gray-600 text-white py-2.5 px-4 rounded-lg hover:bg-gray-700">🖨️</button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Statement Results */}
+                    {statement && (
+                      <>
+                        <div className="overflow-x-auto mb-6">
+                          <table className="min-w-full border-collapse border border-gray-300">
+                            <thead>
+                              <tr className="bg-gray-100">
+                                <th className="border border-gray-300 p-2 text-sm">التاريخ</th>
+                                <th className="border border-gray-300 p-2 text-sm">نوع القيد</th>
+                                <th className="border border-gray-300 p-2 text-sm">البيان</th>
+                                <th className="border border-gray-300 p-2 text-sm">المرجع</th>
+                                <th className="border border-gray-300 p-2 text-sm">مدين</th>
+                                <th className="border border-gray-300 p-2 text-sm">دائن</th>
+                                <th className="border border-gray-300 p-2 text-sm">الرصيد</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {statement.transactions.length === 0 ? (
+                                <tr><td colSpan="7" className="border p-4 text-center text-gray-500">لا توجد معاملات</td></tr>
+                              ) : (
+                                statement.transactions.map((trans, i) => (
+                                  <tr key={i} className="hover:bg-gray-50">
+                                    <td className="border border-gray-300 p-2 text-sm">{new Date(trans.date).toLocaleDateString('ar-EG')}</td>
+                                    <td className="border border-gray-300 p-2 text-sm">{trans.type}</td>
+                                    <td className="border border-gray-300 p-2 text-sm text-right">{trans.description}</td>
+                                    <td className="border border-gray-300 p-2 text-sm">{trans.reference}</td>
+                                    <td className="border border-gray-300 p-2 text-sm text-red-600 font-medium">{trans.debit > 0 ? trans.debit.toFixed(2) : '-'}</td>
+                                    <td className="border border-gray-300 p-2 text-sm text-green-600 font-medium">{trans.credit > 0 ? trans.credit.toFixed(2) : '-'}</td>
+                                    <td className="border border-gray-300 p-2 text-sm font-bold">{trans.balance.toFixed(2)}</td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Summary */}
+                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-5 rounded-xl border-t-4 border-blue-500">
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="text-center">
+                              <p className="text-sm text-gray-600">إجمالي الدائن</p>
+                              <p className="text-xl font-bold text-green-600">{statement.summary.total_credit?.toFixed(2)} {currency}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-sm text-gray-600">إجمالي المدين</p>
+                              <p className="text-xl font-bold text-red-600">{statement.summary.total_debit?.toFixed(2)} {currency}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-sm text-gray-600">الرصيد النهائي</p>
+                              <p className={`text-2xl font-bold ${statement.summary.final_balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {statement.summary.final_balance?.toFixed(2)} {currency}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {!statement && (
+                      <div className="text-center py-10 text-gray-400">
+                        <p className="text-4xl mb-2">📋</p>
+                        <p>اضغط "عرض الكشف" لعرض كشف حساب العميل</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* === SETTLEMENT TAB === */}
+                {activeTab === 'settle' && (
+                  <div>
+                    {/* Payment Form */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">المبلغ المدفوع ({currency})</label>
+                        <input type="number" step="0.01" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)}
+                          placeholder="0.00" className="w-full p-2.5 border border-gray-300 rounded-lg" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">طريقة الدفع</label>
+                        <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}
+                          className="w-full p-2.5 border border-gray-300 rounded-lg">
+                          <option value="نقدي">نقدي</option>
+                          <option value="فودافون 010">فودافون 010</option>
+                          <option value="كاش 0100">كاش 0100</option>
+                          <option value="انستاباي">انستاباي</option>
+                          <option value="يد الصاوي">يد الصاوي</option>
+                        </select>
+                      </div>
+                      <div className="flex items-end">
+                        <button onClick={handleSettleAccount} disabled={loading || !amountPaid}
+                          className={`w-full py-2.5 rounded-lg font-semibold text-white ${loading || !amountPaid ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}>
+                          {loading ? '⏳ جاري...' : '✅ تصفية الحساب'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Supplier Reconciliation */}
+                    {isCustomerAlsoSupplier && totalRemaining > 0 && (
+                      <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-xl">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="text-lg font-semibold text-purple-800 mb-1">🔄 تسوية (عميل ومورد)</h4>
+                            <p className="text-sm text-gray-700">رصيد المورد: <strong>{supplierBalance.toFixed(2)}</strong> | ديون العميل: <strong>{totalRemaining.toFixed(2)}</strong></p>
+                            <p className="text-sm text-purple-700 font-semibold">سيتم تسوية: {Math.min(supplierBalance, totalRemaining).toFixed(2)} {currency}</p>
+                          </div>
+                          <button onClick={handleReconciliation} disabled={loading}
+                            className={`px-6 py-2.5 rounded-lg font-semibold text-white ${loading ? 'bg-gray-400' : 'bg-purple-600 hover:bg-purple-700'}`}>
+                            🔄 تسوية
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Deferred Invoices Table */}
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-lg font-semibold">الفواتير الآجلة ({deferredInvoices.length})</h3>
+                      <p className="text-xl font-bold text-red-600">{formatNumber(totalRemaining)} {currency}</p>
+                    </div>
+
+                    {deferredInvoices.length === 0 ? (
+                      <div className="text-center py-8 text-gray-400">
+                        <p className="text-4xl mb-2">✅</p>
+                        <p>لا توجد فواتير آجلة مستحقة</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="bg-gray-100">
+                              <th className="border border-gray-300 p-2.5 text-sm">رقم الفاتورة</th>
+                              <th className="border border-gray-300 p-2.5 text-sm">التاريخ</th>
+                              <th className="border border-gray-300 p-2.5 text-sm">الإجمالي</th>
+                              <th className="border border-gray-300 p-2.5 text-sm">المدفوع</th>
+                              <th className="border border-gray-300 p-2.5 text-sm">المتبقي</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {deferredInvoices.map((inv, i) => (
+                              <tr key={inv.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                <td className="border border-gray-300 p-2.5 text-sm font-semibold">{inv.invoice_number}</td>
+                                <td className="border border-gray-300 p-2.5 text-sm">{new Date(inv.date).toLocaleDateString('ar-EG')}</td>
+                                <td className="border border-gray-300 p-2.5 text-sm">{inv.total_amount.toFixed(2)}</td>
+                                <td className="border border-gray-300 p-2.5 text-sm text-green-600">{inv.paid_amount.toFixed(2)}</td>
+                                <td className="border border-gray-300 p-2.5 text-sm text-red-600 font-bold">{inv.remaining_amount.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    <div className="mt-4 p-3 bg-blue-50 rounded-lg border-r-4 border-blue-500">
+                      <p className="text-sm text-gray-700">💡 سيتم توزيع المبلغ المدفوع على الفواتير بترتيب التاريخ من الأقدم للأحدث</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="text-sm text-gray-600">إجمالي المديونيات</div>
-          </div>
-          <div className="bg-orange-50 p-4 rounded-lg text-center">
-            <div className="text-2xl font-bold text-orange-600">
-              {Object.values(balances).filter(b => b.total_debt > 0).length}
+          ) : (
+            <div className="bg-white rounded-2xl shadow-md p-12 text-center">
+              <p className="text-6xl mb-4">👈</p>
+              <h3 className="text-xl font-bold text-gray-700 mb-2">اختر عميل من القائمة</h3>
+              <p className="text-gray-500">اضغط على اسم العميل لعرض بياناته وكشف حسابه</p>
             </div>
-            <div className="text-sm text-gray-600">عملاء عليهم مديونية</div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
+
 
 // Material Pricing Component
 const Pricing = () => {
@@ -12283,11 +12622,11 @@ const App = () => {
         return (user?.role === 'admin' || user?.role === 'master' || user?.username === 'Elsawy') ? <MainTreasury /> : <Sales />;
       case 'invoices': return <Invoices />;
       case 'deleted-invoices': return <DeletedInvoices />;
-      case 'customer-statement': return <CustomerStatement />;
-      case 'settle-account': return <SettleAccount />;
+      case 'customer-statement': return <CustomerHub />;
+      case 'settle-account': return <CustomerHub />;
       case 'work-orders': return <WorkOrders />;
       case 'pricing': return <Pricing />;
-      case 'customers': return <CustomerManagement />;
+      case 'customers': return <CustomerHub />;
       case 'backup': return <Backup />;
       case 'users': return <Users />;
       case 'settings': return <Settings />;

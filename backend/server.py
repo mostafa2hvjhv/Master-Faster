@@ -1505,8 +1505,8 @@ async def get_invoice(invoice_id: str):
     return Invoice(**invoice)
 
 @api_router.delete("/invoices/clear-all")
-async def clear_all_invoices():
-    result = await db.invoices.delete_many({})
+async def clear_all_invoices(company_id: str = "elsawy"):
+    result = await db.invoices.delete_many({"company_id": company_id})
     return {"message": f"تم حذف {result.deleted_count} فاتورة", "deleted_count": result.deleted_count}
 
 @api_router.delete("/invoices/{invoice_id}")
@@ -2872,10 +2872,10 @@ async def reset_treasury(username: str):
             raise HTTPException(status_code=403, detail="غير مصرح لك بتنفيذ هذه العملية")
         
         # Get count of records before deletion for logging
-        treasury_count = await db.treasury_transactions.count_documents({})
+        treasury_count = await db.treasury_transactions.count_documents({"company_id": company_id})
         
-        # Delete all treasury transactions
-        treasury_result = await db.treasury_transactions.delete_many({})
+        # Delete only this company's treasury transactions
+        treasury_result = await db.treasury_transactions.delete_many({"company_id": company_id})
         
         return {
             "message": "تم مسح جميع بيانات الخزينة بنجاح",
@@ -3568,17 +3568,17 @@ async def export_raw_materials_excel():
         raise HTTPException(status_code=500, detail=f"خطأ في تصدير الملف: {str(e)}")
 
 # Helper function for background backup
-async def perform_backup(backup_id: str, username: str, upload_to_drive: bool):
-    """Perform backup in background"""
+async def perform_backup(backup_id: str, username: str, upload_to_drive: bool, company_id: str = "elsawy"):
+    """Perform backup in background - filtered by company_id"""
     try:
         backup_time = datetime.now(timezone.utc).isoformat()
         
-        # Collections to backup
-        collections = [
+        # Collections to backup (filtered by company_id)
+        company_collections = [
             'customers', 'suppliers', 'invoices', 'payments', 'expenses',
-            'raw_materials', 'finished_products', 'inventory', 'inventory_transactions',
+            'raw_materials', 'finished_products', 'inventory_items',
             'local_products', 'supplier_transactions', 'treasury_transactions',
-            'work_orders', 'users', 'deleted_invoices',
+            'work_orders', 'deleted_invoices',
             'company_settings', 'main_treasury_transactions', 'main_treasury_passwords',
             'material_pricing', 'pricing_rules'
         ]
@@ -3587,6 +3587,7 @@ async def perform_backup(backup_id: str, username: str, upload_to_drive: bool):
             'backup_id': backup_id,
             'created_at': backup_time,
             'created_by': username or 'system',
+            'company_id': company_id,
             'collections': {},
             'drive_file_id': None,
             'drive_link': None,
@@ -3596,14 +3597,21 @@ async def perform_backup(backup_id: str, username: str, upload_to_drive: bool):
         # Save initial status
         await db.backups.insert_one(backup_data)
         
-        # Backup each collection
+        # Backup each collection - filtered by company_id
         total_documents = 0
         collections_data = {}
         
-        for collection_name in collections:
+        for collection_name in company_collections:
             try:
                 collection = db[collection_name]
-                documents = await collection.find().to_list(length=None)
+                # Filter by company_id to only backup this company's data
+                query = {"company_id": company_id}
+                # company_settings uses _type+company_id
+                if collection_name == 'company_settings':
+                    query = {"company_id": company_id}
+                elif collection_name == 'main_treasury_passwords':
+                    query = {"company_id": company_id}
+                documents = await collection.find(query).to_list(length=None)
                 # Remove MongoDB _id for JSON serialization
                 clean_documents = []
                 for doc in documents:
@@ -3614,7 +3622,7 @@ async def perform_backup(backup_id: str, username: str, upload_to_drive: bool):
                 
                 collections_data[collection_name] = clean_documents
                 total_documents += len(clean_documents)
-                logger.info(f"Backed up {collection_name}: {len(clean_documents)} documents")
+                logger.info(f"Backed up {collection_name}: {len(clean_documents)} documents (company: {company_id})")
             except Exception as e:
                 logger.error(f"Failed to backup {collection_name}: {str(e)}")
                 collections_data[collection_name] = []
@@ -3699,13 +3707,13 @@ async def perform_backup(backup_id: str, username: str, upload_to_drive: bool):
 
 # Backup and Restore APIs
 @api_router.post("/backup/create")
-async def create_backup(background_tasks: BackgroundTasks, username: str = None):
-    """Create a manual backup of all database collections (background task)"""
+async def create_backup(background_tasks: BackgroundTasks, username: str = None, company_id: str = "elsawy"):
+    """Create a manual backup of company-specific database collections (background task)"""
     try:
         backup_id = str(uuid.uuid4())
         
-        # Start backup in background (local only)
-        background_tasks.add_task(perform_backup, backup_id, username, False)
+        # Start backup in background (local only) - filtered by company_id
+        background_tasks.add_task(perform_backup, backup_id, username, False, company_id)
         
         return {
             'message': 'بدأت عملية النسخ الاحتياطي المحلي',
@@ -3818,8 +3826,8 @@ async def upload_backup(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"خطأ في رفع النسخة الاحتياطية: {str(e)}")
 
 @api_router.post("/backup/restore-from-file")
-async def restore_from_uploaded_file(file: UploadFile = File(...), username: str = None):
-    """Restore database directly from uploaded backup file"""
+async def restore_from_uploaded_file(file: UploadFile = File(...), username: str = None, company_id: str = "elsawy"):
+    """Restore database directly from uploaded backup file - company isolated"""
     try:
         # Validate file type
         if not file.filename.endswith('.json'):
@@ -3836,7 +3844,7 @@ async def restore_from_uploaded_file(file: UploadFile = File(...), username: str
         if 'collections' not in backup_data:
             raise HTTPException(status_code=400, detail="ملف النسخة الاحتياطية غير صالح")
         
-        # Restore collections
+        # Restore collections - only delete/replace this company's data
         restored_collections = []
         total_restored = 0
         
@@ -3847,8 +3855,8 @@ async def restore_from_uploaded_file(file: UploadFile = File(...), username: str
             try:
                 collection = db[collection_name]
                 
-                # Clear existing data
-                await collection.delete_many({})
+                # Only delete THIS company's data (not all companies)
+                await collection.delete_many({"company_id": company_id})
                 
                 # Insert backup data
                 if documents:
@@ -3873,13 +3881,16 @@ async def restore_from_uploaded_file(file: UploadFile = File(...), username: str
         raise HTTPException(status_code=500, detail=f"خطأ في استرجاع البيانات: {str(e)}")
 
 @api_router.get("/backup/list")
-async def list_backups():
-    """Get list of all backups"""
+async def list_backups(company_id: str = "elsawy"):
+    """Get list of backups for this company"""
     try:
-        backups = await db.backups.find({}, {
+        # Show backups for this company + old backups without company_id
+        query = {"$or": [{"company_id": company_id}, {"company_id": {"$exists": False}}]}
+        backups = await db.backups.find(query, {
             'backup_id': 1,
             'created_at': 1,
             'created_by': 1,
+            'company_id': 1,
             'status': 1,
             'total_documents': 1,
             'drive_file_id': 1,
@@ -3893,8 +3904,8 @@ async def list_backups():
         raise HTTPException(status_code=500, detail=f"خطأ في جلب قائمة النسخ الاحتياطية: {str(e)}")
 
 @api_router.post("/backup/restore/{backup_id}")
-async def restore_backup(backup_id: str, username: str = None):
-    """Restore a backup"""
+async def restore_backup(backup_id: str, username: str = None, company_id: str = "elsawy"):
+    """Restore a backup - company isolated"""
     try:
         # Find the backup
         backup = await db.backups.find_one({'backup_id': backup_id})
@@ -3907,7 +3918,7 @@ async def restore_backup(backup_id: str, username: str = None):
         restored_collections = []
         total_restored = 0
         
-        # Restore each collection
+        # Restore each collection - only delete/replace this company's data
         for collection_name, documents in backup['collections'].items():
             if not documents:
                 continue
@@ -3915,8 +3926,8 @@ async def restore_backup(backup_id: str, username: str = None):
             try:
                 collection = db[collection_name]
                 
-                # Clear existing data
-                await collection.delete_many({})
+                # Only delete THIS company's data (not all companies)
+                await collection.delete_many({"company_id": company_id})
                 
                 # Insert backup data
                 if documents:
@@ -4073,8 +4084,8 @@ async def download_from_drive(file_id: str):
         raise HTTPException(status_code=500, detail=f"خطأ في تنزيل الملف: {str(e)}")
 
 @api_router.post("/backup/drive/restore/{file_id}")
-async def restore_from_drive(file_id: str):
-    """Restore backup from Google Drive file"""
+async def restore_from_drive(file_id: str, company_id: str = "elsawy"):
+    """Restore backup from Google Drive file - company isolated"""
     try:
         if not GDRIVE_ENABLED:
             raise HTTPException(status_code=503, detail="Google Drive غير مفعّل")
@@ -4103,8 +4114,8 @@ async def restore_from_drive(file_id: str):
                 try:
                     collection = db[collection_name]
                     
-                    # Clear existing data
-                    await collection.delete_many({})
+                    # Only delete THIS company's data (not all companies)
+                    await collection.delete_many({"company_id": company_id})
                     
                     # Insert backup data
                     if documents:
@@ -4255,94 +4266,96 @@ app.add_middleware(
 scheduler = BackgroundScheduler()
 
 async def scheduled_backup():
-    """Scheduled automatic backup"""
+    """Scheduled automatic backup - creates separate backup per company"""
     try:
         logger.info("Starting scheduled automatic backup...")
         
-        # Create backup
-        backup_id = str(uuid.uuid4())
-        backup_time = datetime.now(timezone.utc).isoformat()
-        
-        collections = [
-            'customers', 'suppliers', 'invoices', 'payments', 'expenses',
-            'raw_materials', 'finished_products', 'inventory', 'inventory_transactions',
-            'local_products', 'supplier_transactions', 'treasury_transactions',
-            'work_orders', 'users', 'deleted_invoices',
-            'company_settings', 'main_treasury_transactions', 'main_treasury_passwords',
-            'material_pricing', 'pricing_rules'
-        ]
-        
-        backup_data = {
-            'backup_id': backup_id,
-            'created_at': backup_time,
-            'created_by': 'system_scheduled',
-            'collections': {},
-            'drive_file_id': None,
-            'drive_link': None,
-            'is_scheduled': True
-        }
-        
-        total_documents = 0
-        for collection_name in collections:
-            try:
-                collection = db[collection_name]
-                documents = await collection.find().to_list(length=None)
-                for doc in documents:
-                    if '_id' in doc:
-                        del doc['_id']
-                backup_data['collections'][collection_name] = documents
-                total_documents += len(documents)
-            except Exception as e:
-                logger.warning(f"Failed to backup {collection_name}: {str(e)}")
-                backup_data['collections'][collection_name] = []
-        
-        # Save to database
-        backup_data['total_documents'] = total_documents
-        backup_data['status'] = 'completed'
-        await db.backups.insert_one(backup_data)
-        
-        # Upload to Google Drive
-        if GDRIVE_ENABLED and drive_service:
-            try:
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                filename = f'scheduled_backup_{timestamp}.json'
-                temp_file = BACKUP_TEMP_DIR / filename
-                
-                backup_json = backup_data.copy()
-                if '_id' in backup_json:
-                    del backup_json['_id']
-                
-                with open(temp_file, 'w', encoding='utf-8') as f:
-                    json.dump(backup_json, f, ensure_ascii=False, indent=2, default=str)
-                
+        # Backup each company separately
+        for cid in ["elsawy", "faster"]:
+            backup_id = str(uuid.uuid4())
+            backup_time = datetime.now(timezone.utc).isoformat()
+            
+            collections = [
+                'customers', 'suppliers', 'invoices', 'payments', 'expenses',
+                'raw_materials', 'finished_products', 'inventory_items',
+                'local_products', 'supplier_transactions', 'treasury_transactions',
+                'work_orders', 'deleted_invoices',
+                'company_settings', 'main_treasury_transactions', 'main_treasury_passwords',
+                'material_pricing', 'pricing_rules'
+            ]
+            
+            backup_data = {
+                'backup_id': backup_id,
+                'created_at': backup_time,
+                'created_by': 'system_scheduled',
+                'company_id': cid,
+                'collections': {},
+                'drive_file_id': None,
+                'drive_link': None,
+                'is_scheduled': True
+            }
+            
+            total_documents = 0
+            for collection_name in collections:
                 try:
-                    drive_result = drive_service.upload_file(
-                        file_path=str(temp_file),
-                        file_name=filename,
-                        mime_type='application/json'
-                    )
+                    collection = db[collection_name]
+                    documents = await collection.find({"company_id": cid}).to_list(length=None)
+                    for doc in documents:
+                        if '_id' in doc:
+                            del doc['_id']
+                    backup_data['collections'][collection_name] = documents
+                    total_documents += len(documents)
+                except Exception as e:
+                    logger.warning(f"Failed to backup {collection_name} for {cid}: {str(e)}")
+                    backup_data['collections'][collection_name] = []
+        
+            # Save to database
+            backup_data['total_documents'] = total_documents
+            backup_data['status'] = 'completed'
+            await db.backups.insert_one(backup_data)
+            
+            # Upload to Google Drive
+            if GDRIVE_ENABLED and drive_service:
+                try:
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = f'scheduled_backup_{cid}_{timestamp}.json'
+                    temp_file = BACKUP_TEMP_DIR / filename
                     
-                    await db.backups.update_one(
-                        {'backup_id': backup_id},
-                        {'$set': {
-                            'drive_file_id': drive_result['id'],
-                            'drive_link': drive_result.get('webViewLink')
-                        }}
-                    )
+                    backup_json = backup_data.copy()
+                    if '_id' in backup_json:
+                        del backup_json['_id']
                     
-                    logger.info(f"Scheduled backup completed and uploaded to Google Drive: {filename}")
+                    with open(temp_file, 'w', encoding='utf-8') as f:
+                        json.dump(backup_json, f, ensure_ascii=False, indent=2, default=str)
                     
-                except Exception as drive_error:
-                    logger.warning(f"Scheduled backup completed locally only: {str(drive_error)}")
-                
-                # Cleanup
-                if temp_file.exists():
-                    os.remove(temp_file)
+                    try:
+                        drive_result = drive_service.upload_file(
+                            file_path=str(temp_file),
+                            file_name=filename,
+                            mime_type='application/json'
+                        )
+                        
+                        await db.backups.update_one(
+                            {'backup_id': backup_id},
+                            {'$set': {
+                                'drive_file_id': drive_result['id'],
+                                'drive_link': drive_result.get('webViewLink')
+                            }}
+                        )
+                        
+                        logger.info(f"Scheduled backup for {cid} completed and uploaded to Google Drive: {filename}")
+                        
+                    except Exception as drive_error:
+                        logger.warning(f"Scheduled backup for {cid} completed locally only: {str(drive_error)}")
                     
-            except Exception as e:
-                logger.error(f"Failed to process scheduled backup Drive upload: {str(e)}")
-        else:
-            logger.info(f"Scheduled backup completed (local only): {total_documents} documents")
+                    # Cleanup
+                    if temp_file.exists():
+                        os.remove(temp_file)
+                        
+                except Exception as e:
+                    logger.error(f"Failed to process scheduled backup Drive upload for {cid}: {str(e)}")
+            else:
+                logger.info(f"Scheduled backup for {cid} completed (local only): {total_documents} documents")
         
     except Exception as e:
         logger.error(f"Scheduled backup failed: {str(e)}")
@@ -4740,8 +4753,8 @@ async def change_invoice_operations_password(password_change: PasswordChange):
 # ============================================================================
 
 @api_router.post("/invoices/bulk-delete-by-date")
-async def bulk_delete_invoices_by_date(date: str, password: str, username: str):
-    """Delete all invoices of a specific date - Elsawy only with password"""
+async def bulk_delete_invoices_by_date(date: str, password: str, username: str, company_id: str = "elsawy"):
+    """Delete all invoices of a specific date - filtered by company_id"""
     try:
         # Security checks
         if username not in ["Elsawy", "Faster"]:
@@ -4756,8 +4769,8 @@ async def bulk_delete_invoices_by_date(date: str, password: str, username: str):
         except:
             raise HTTPException(status_code=400, detail="صيغة التاريخ غير صحيحة. استخدم: YYYY-MM-DD")
         
-        # Find all invoices for this date
-        all_invoices = await db.invoices.find().to_list(length=None)
+        # Find all invoices for this date - filtered by company_id
+        all_invoices = await db.invoices.find({"company_id": company_id}).to_list(length=None)
         invoices_to_delete = []
         
         for invoice in all_invoices:
@@ -4867,8 +4880,8 @@ async def bulk_delete_invoices_by_date(date: str, password: str, username: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/invoices/bulk-delete-last")
-async def bulk_delete_last_invoices(count: int, password: str, username: str):
-    """Delete last N invoices - Elsawy only with password"""
+async def bulk_delete_last_invoices(count: int, password: str, username: str, company_id: str = "elsawy"):
+    """Delete last N invoices - filtered by company_id"""
     try:
         # Security checks
         if username not in ["Elsawy", "Faster"]:
@@ -4880,8 +4893,8 @@ async def bulk_delete_last_invoices(count: int, password: str, username: str):
         if count < 1 or count > 10:
             raise HTTPException(status_code=400, detail="يمكن حذف من 1 إلى 10 فواتير فقط")
         
-        # Get last N invoices (sorted by date descending)
-        all_invoices = await db.invoices.find().sort("date", -1).limit(count).to_list(length=count)
+        # Get last N invoices - filtered by company_id
+        all_invoices = await db.invoices.find({"company_id": company_id}).sort("date", -1).limit(count).to_list(length=count)
         
         if not all_invoices:
             return {

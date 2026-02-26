@@ -793,11 +793,11 @@ async def get_customer_statement(
             date_filter["$lte"] = to_date
         
         # Get all invoices for this customer
-        invoice_query = {"customer_id": customer_id}
+        invoice_query = {"$or": [{"customer_id": customer_id}, {"customer_name": customer.get("name")}]}
         if date_filter:
-            invoice_query["created_at"] = date_filter
+            invoice_query["date"] = date_filter
         
-        invoices = await db.invoices.find(invoice_query).sort("created_at", 1).to_list(length=None)
+        invoices = await db.invoices.find(invoice_query).sort("date", 1).to_list(length=None)
         
         # Get all payments for this customer's invoices
         invoice_ids = [inv.get("id") for inv in invoices]
@@ -822,7 +822,7 @@ async def get_customer_statement(
         
         # Add invoices (دائن - Credit)
         for invoice in invoices:
-            transaction_date = invoice.get("created_at", "")
+            transaction_date = invoice.get("date", invoice.get("created_at", ""))
             amount = invoice.get("total_amount", 0)
             running_balance += amount
             

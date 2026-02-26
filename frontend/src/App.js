@@ -10764,14 +10764,21 @@ const CustomerManagement = () => {
     }
   };
 
+  const editDataRef = React.useRef(editData);
+  React.useEffect(() => { editDataRef.current = editData; }, [editData]);
+
   const startEdit = (customer) => {
+    const data = { name: customer.name, phone: customer.phone || '', address: customer.address || '' };
     setEditingId(customer.id);
-    setEditData({ name: customer.name, phone: customer.phone || '', address: customer.address || '' });
+    setEditData(data);
+    editDataRef.current = data;
   };
 
   const saveEdit = async (customerId) => {
+    const dataToSend = editDataRef.current;
+    console.log('Saving customer:', customerId, 'Data:', dataToSend);
     try {
-      await axios.put(`${API}/customers/${customerId}`, editData);
+      await axios.put(`${API}/customers/${customerId}`, dataToSend);
       alert('تم تحديث بيانات العميل ✅');
       setEditingId(null);
       fetchCustomers();

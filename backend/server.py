@@ -805,16 +805,16 @@ async def get_customer_statement(
         if invoice_ids:
             payment_query = {"invoice_id": {"$in": invoice_ids}}
             if date_filter:
-                payment_query["payment_date"] = date_filter
-            payments = await db.payments.find(payment_query).sort("payment_date", 1).to_list(length=None)
+                payment_query["date"] = date_filter
+            payments = await db.payments.find(payment_query).sort("date", 1).to_list(length=None)
         
         # Get supplier transactions if customer is also a supplier
         supplier_transactions = []
         if supplier:
             supplier_query = {"supplier_id": supplier.get("id")}
             if date_filter:
-                supplier_query["transaction_date"] = date_filter
-            supplier_transactions = await db.supplier_transactions.find(supplier_query).sort("transaction_date", 1).to_list(length=None)
+                supplier_query["date"] = date_filter
+            supplier_transactions = await db.supplier_transactions.find(supplier_query).sort("date", 1).to_list(length=None)
         
         # Build transactions list
         transactions = []
@@ -838,7 +838,7 @@ async def get_customer_statement(
         
         # Add payments (مدين - Debit)
         for payment in payments:
-            transaction_date = payment.get("payment_date", "")
+            transaction_date = payment.get("date", payment.get("payment_date", ""))
             amount = payment.get("amount", 0)
             running_balance -= amount
             
@@ -861,7 +861,7 @@ async def get_customer_statement(
         
         # Add supplier transactions if exists (purchases from customer as supplier)
         for trans in supplier_transactions:
-            transaction_date = trans.get("transaction_date", "")
+            transaction_date = trans.get("date", trans.get("transaction_date", ""))
             trans_type = trans.get("transaction_type", "")
             amount = trans.get("amount", 0)
             

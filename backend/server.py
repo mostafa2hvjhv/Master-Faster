@@ -679,6 +679,89 @@ async def delete_customer(customer_id: str):
         raise HTTPException(status_code=404, detail="العميل غير موجود")
     return {"message": "تم حذف العميل بنجاح"}
 
+@api_router.put("/customers/{customer_id}")
+async def update_customer(customer_id: str, request: Request, company_id: str = "elsawy"):
+    """Update customer info (name, phone, address)"""
+    try:
+        body = await request.json()
+        customer = await db.customers.find_one({"id": customer_id, "company_id": company_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="العميل غير موجود")
+        
+        update_data = {}
+        if "name" in body and body["name"]:
+            # Check name uniqueness within company
+            existing = await db.customers.find_one({"name": body["name"], "company_id": company_id, "id": {"$ne": customer_id}})
+            if existing:
+                raise HTTPException(status_code=409, detail=f"عميل بنفس الاسم موجود بالفعل: {body['name']}")
+            update_data["name"] = body["name"]
+        if "phone" in body:
+            update_data["phone"] = body["phone"]
+        if "address" in body:
+            update_data["address"] = body["address"]
+        
+        if update_data:
+            # If name changed, update name in all related invoices
+            old_name = customer.get("name")
+            await db.customers.update_one({"id": customer_id}, {"$set": update_data})
+            
+            if "name" in update_data and update_data["name"] != old_name:
+                await db.invoices.update_many(
+                    {"customer_name": old_name, "company_id": company_id},
+                    {"$set": {"customer_name": update_data["name"]}}
+                )
+                await db.payments.update_many(
+                    {"customer_name": old_name, "company_id": company_id},
+                    {"$set": {"customer_name": update_data["name"]}}
+                )
+        
+        updated = await db.customers.find_one({"id": customer_id})
+        return updated
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/customers/{customer_id}/balance")
+async def get_customer_balance(customer_id: str, company_id: str = "elsawy"):
+    """Get customer debt balance from unpaid invoices"""
+    try:
+        customer = await db.customers.find_one({"id": customer_id, "company_id": company_id})
+        if not customer:
+            raise HTTPException(status_code=404, detail="العميل غير موجود")
+        
+        # Find all invoices for this customer with remaining amounts
+        invoices = await db.invoices.find({
+            "customer_name": customer["name"],
+            "company_id": company_id
+        }).to_list(None)
+        
+        total_debt = 0
+        unpaid_invoices = []
+        for inv in invoices:
+            remaining = inv.get("remaining_amount", 0)
+            if remaining > 0:
+                total_debt += remaining
+                unpaid_invoices.append({
+                    "invoice_number": inv.get("invoice_number"),
+                    "date": inv.get("date"),
+                    "total_amount": inv.get("total_amount", 0),
+                    "paid_amount": inv.get("paid_amount", 0),
+                    "remaining_amount": remaining
+                })
+        
+        return {
+            "customer_name": customer["name"],
+            "total_debt": total_debt,
+            "total_invoices": len(invoices),
+            "unpaid_invoices_count": len(unpaid_invoices),
+            "unpaid_invoices": unpaid_invoices
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Customer Statement API (كشف الحساب)
 @api_router.get("/customer-statement/{customer_id}")
 async def get_customer_statement(

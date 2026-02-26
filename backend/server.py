@@ -673,8 +673,10 @@ async def clear_all_customers(company_id: str = "elsawy"):
     return {"message": f"تم حذف {result.deleted_count} عميل", "deleted_count": result.deleted_count}
 
 @api_router.delete("/customers/{customer_id}")
-async def delete_customer(customer_id: str):
-    result = await db.customers.delete_one({"id": customer_id})
+async def delete_customer(customer_id: str, company_id: str = "elsawy"):
+    result = await db.customers.delete_one({"id": customer_id, "company_id": company_id})
+    if result.deleted_count == 0:
+        result = await db.customers.delete_one({"id": customer_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="العميل غير موجود")
     return {"message": "تم حذف العميل بنجاح"}
@@ -717,7 +719,7 @@ async def update_customer(customer_id: str, request: Request, company_id: str = 
                     {"$set": {"customer_name": update_data["name"]}}
                 )
         
-        updated = await db.customers.find_one({"id": customer_id})
+        updated = await db.customers.find_one({"id": customer_id}, {"_id": 0})
         return updated
     except HTTPException:
         raise

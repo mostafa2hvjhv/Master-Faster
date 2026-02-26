@@ -10781,7 +10781,7 @@ const CustomerManagement = () => {
   };
 
   const deleteCustomer = async (customerId, name) => {
-    if (!confirm(`هل أنت متأكد من حذف العميل "${name}"؟`)) return;
+    if (!window.confirm(`هل أنت متأكد من حذف العميل "${name}"؟`)) return;
     try {
       await axios.delete(`${API}/customers/${customerId}`);
       alert('تم حذف العميل ✅');

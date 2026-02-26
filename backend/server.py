@@ -2252,20 +2252,18 @@ async def get_account_balances(company_id: str = "elsawy"):
 @api_router.get("/daily-sales-report")
 async def get_daily_sales_report(report_date: str = None, company_id: str = "elsawy"):
     """
-    Get daily sales report for a specific date
-    - report_date: YYYY-MM-DD format (defaults to today)
-    
-    Returns:
-    - cash_sales: مبيعات نقدية (فواتير نقدية + فواتير آجل مدفوعة بالكامل في نفس اليوم)
-    - deferred_sales: مبيعات آجل (فواتير آجل لم تدفع في نفس اليوم)
-    - deferred_collections: تحصيل من الآجل (مدفوعات على فواتير آجل سابقة)
-    - expenses: مصروفات اليوم
-    - daily_account_changes: الزيادة اليومية في كل حساب
+    كشف مبيعات يومي
+    - مبيعات اليوم: إجمالي كل فواتير اليوم بما فيها الآجل
+    - نقدي: فواتير نقدية + آجل محصل نقدي في نفس اليوم
+    - فودافون: فواتير فودافون + آجل محصل فودافون في نفس اليوم
+    - انستاباي: فواتير انستا + آجل محصل انستا في نفس اليوم
+    - آجل: فواتير آجل لم يتم دفعها في نفس اليوم
+    - تحصيل من الآجل: تحصيل فواتير آجل قديمة فقط
+    - صافي الدخل اليومي: نقدي + فودافون + انستا + تحصيل من الآجل
     """
     try:
         from datetime import datetime, timedelta
         
-        # Parse the date or use today
         if report_date:
             try:
                 target_date = datetime.strptime(report_date, "%Y-%m-%d")
@@ -2274,142 +2272,160 @@ async def get_daily_sales_report(report_date: str = None, company_id: str = "els
         else:
             target_date = datetime.now()
         
-        # Define date range (start of day to end of day)
         start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
         end_of_day = target_date.replace(hour=23, minute=59, second=59, microsecond=999999)
         
-        # Get all invoices for the target date
+        # Fetch data
         invoices = await db.invoices.find({
             "date": {"$gte": start_of_day, "$lte": end_of_day},
             "company_id": company_id
         }, {"_id": 0}).to_list(1000)
         
-        # Get all payments for the target date
         payments = await db.payments.find({
             "date": {"$gte": start_of_day, "$lte": end_of_day},
             "company_id": company_id
         }, {"_id": 0}).to_list(1000)
         
-        # Get all treasury transactions for the target date
-        treasury_transactions = await db.treasury_transactions.find({
-            "date": {"$gte": start_of_day, "$lte": end_of_day},
-            "company_id": company_id
-        }, {"_id": 0}).to_list(1000)
-        
-        # Get all expenses for the target date
         expenses = await db.expenses.find({
             "date": {"$gte": start_of_day, "$lte": end_of_day},
             "company_id": company_id
         }, {"_id": 0}).to_list(1000)
         
-        # Calculate cash sales
-        # Cash sales = cash invoices + deferred invoices fully paid on same day
+        treasury_transactions = await db.treasury_transactions.find({
+            "date": {"$gte": start_of_day, "$lte": end_of_day},
+            "company_id": company_id
+        }, {"_id": 0}).to_list(1000)
+        
+        # === Sales calculation ===
+        total_sales = 0
         cash_sales = 0
+        vodafone_sales = 0
+        instapay_sales = 0
         deferred_sales = 0
+        today_deferred_invoice_ids = set()
         
         for invoice in invoices:
-            invoice_total = invoice.get("total_after_discount") or invoice.get("total_amount", 0)
-            payment_method = invoice.get("payment_method", "")
+            inv_total = invoice.get("total_after_discount") or invoice.get("total_amount", 0)
+            method = invoice.get("payment_method", "")
             remaining = invoice.get("remaining_amount", 0)
+            inv_id = invoice.get("id", "")
             
-            if payment_method == "آجل":
-                # Check if this deferred invoice was fully paid on the same day
+            total_sales += inv_total
+            
+            if method == "آجل":
+                today_deferred_invoice_ids.add(inv_id)
                 if remaining == 0:
-                    # Fully paid deferred invoice = count as cash
-                    cash_sales += invoice_total
+                    # Fully paid same day - classify by payment method used
+                    inv_payments = [p for p in payments if p.get("invoice_id") == inv_id]
+                    if inv_payments:
+                        for p in inv_payments:
+                            pm = p.get("payment_method", "نقدي")
+                            pa = p.get("amount", 0)
+                            if pm in ["فودافون", "vodafone"]:
+                                vodafone_sales += pa
+                            elif pm in ["انستاباي", "instapay", "انستا"]:
+                                instapay_sales += pa
+                            else:
+                                cash_sales += pa
+                    else:
+                        cash_sales += inv_total
+                elif remaining < inv_total:
+                    # Partially paid same day
+                    inv_payments = [p for p in payments if p.get("invoice_id") == inv_id]
+                    if inv_payments:
+                        for p in inv_payments:
+                            pm = p.get("payment_method", "نقدي")
+                            pa = p.get("amount", 0)
+                            if pm in ["فودافون", "vodafone"]:
+                                vodafone_sales += pa
+                            elif pm in ["انستاباي", "instapay", "انستا"]:
+                                instapay_sales += pa
+                            else:
+                                cash_sales += pa
+                    else:
+                        cash_sales += (inv_total - remaining)
+                    deferred_sales += remaining
                 else:
-                    # Not fully paid = count as deferred
-                    deferred_sales += invoice_total
+                    deferred_sales += inv_total
+            elif method in ["فودافون", "vodafone"]:
+                vodafone_sales += inv_total
+            elif method in ["انستاباي", "instapay", "انستا"]:
+                instapay_sales += inv_total
             else:
-                # Non-deferred invoice (cash, vodafone, etc.)
-                cash_sales += invoice_total
+                cash_sales += inv_total
         
-        # Calculate deferred collections (payments on previous deferred invoices)
+        # === Deferred collections (OLD invoices paid today only) ===
         deferred_collections = 0
-        deferred_collections_cash = 0  # تحصيل من الآجل نقدي
-        deferred_collections_by_method = {}  # تحصيل مفصل حسب طريقة الدفع
+        deferred_collections_cash = 0
+        deferred_collections_vodafone = 0
+        deferred_collections_instapay = 0
         
         for payment in payments:
-            invoice_id = payment.get("invoice_id")
-            payment_amount = payment.get("amount", 0)
-            payment_method = payment.get("payment_method", "نقدي")
+            inv_id = payment.get("invoice_id")
+            pa = payment.get("amount", 0)
+            pm = payment.get("payment_method", "نقدي")
             
-            # Find the original invoice
-            invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+            # Skip today's invoices (already counted)
+            if inv_id in today_deferred_invoice_ids:
+                continue
             
-            if invoice:
-                invoice_date = invoice.get("date")
-                invoice_payment_method = invoice.get("payment_method", "")
+            invoice = await db.invoices.find_one({"id": inv_id}, {"_id": 0})
+            if invoice and invoice.get("payment_method") == "آجل":
+                inv_date = invoice.get("date")
+                is_old = True
+                if isinstance(inv_date, datetime):
+                    is_old = inv_date.replace(hour=0, minute=0, second=0, microsecond=0) < start_of_day
                 
-                # Check if this is a payment on a deferred invoice from a previous day
-                if invoice_payment_method == "آجل":
-                    # Check if invoice was created before today
-                    if isinstance(invoice_date, datetime):
-                        invoice_day = invoice_date.replace(hour=0, minute=0, second=0, microsecond=0)
-                        if invoice_day < start_of_day:
-                            # This is a collection from a previous deferred invoice
-                            deferred_collections += payment_amount
-                            
-                            # Track by payment method
-                            if payment_method not in deferred_collections_by_method:
-                                deferred_collections_by_method[payment_method] = 0
-                            deferred_collections_by_method[payment_method] += payment_amount
-                            
-                            if payment_method == "نقدي":
-                                deferred_collections_cash += payment_amount
+                if is_old:
+                    deferred_collections += pa
+                    if pm in ["فودافون", "vodafone"]:
+                        deferred_collections_vodafone += pa
+                    elif pm in ["انستاباي", "instapay", "انستا"]:
+                        deferred_collections_instapay += pa
+                    else:
+                        deferred_collections_cash += pa
         
-        # Calculate daily account changes from treasury transactions
-        daily_account_changes = {
-            "cash": 0,
-            "vodafone_elsawy": 0,
-            "vodafone_wael": 0,
-            "instapay": 0,
-            "yad_elsawy": 0
-        }
+        # === Expenses ===
+        total_expenses = sum(e.get("amount", 0) for e in expenses)
         
-        account_labels = {
-            "cash": "نقدي",
-            "vodafone_elsawy": "فودافون 010",
-            "vodafone_wael": "كاش 0100",
-            "instapay": "انستاباي",
-            "yad_elsawy": "يد الصاوي"
-        }
+        # === Net daily income = all collected today ===
+        net_daily_income = cash_sales + vodafone_sales + instapay_sales + deferred_collections
         
-        for transaction in treasury_transactions:
-            account_id = transaction.get("account_id", "")
-            amount = transaction.get("amount", 0)
-            transaction_type = transaction.get("transaction_type", "")
-            
-            if account_id in daily_account_changes:
-                if transaction_type in ["income", "transfer_in"]:
-                    daily_account_changes[account_id] += amount
-                elif transaction_type in ["expense", "transfer_out"]:
-                    daily_account_changes[account_id] -= amount
+        # === Treasury account changes ===
+        daily_account_changes = {"cash": 0, "vodafone_elsawy": 0, "vodafone_wael": 0, "instapay": 0, "yad_elsawy": 0}
+        account_labels = {"cash": "نقدي", "vodafone_elsawy": "فودافون 010", "vodafone_wael": "كاش 0100", "instapay": "انستاباي", "yad_elsawy": "يد الصاوي"}
         
-        # Calculate total expenses for the day
-        total_expenses = sum(expense.get("amount", 0) for expense in expenses)
+        for t in treasury_transactions:
+            aid = t.get("account_id", "")
+            amt = t.get("amount", 0)
+            tt = t.get("transaction_type", "")
+            if aid in daily_account_changes:
+                if tt in ["income", "transfer_in"]:
+                    daily_account_changes[aid] += amt
+                elif tt in ["expense", "transfer_out"]:
+                    daily_account_changes[aid] -= amt
         
-        # Format the response
-        formatted_account_changes = []
-        for account_id, amount in daily_account_changes.items():
-            formatted_account_changes.append({
-                "account_id": account_id,
-                "label": account_labels.get(account_id, account_id),
-                "daily_change": amount
-            })
+        formatted_account_changes = [
+            {"account_id": k, "label": account_labels.get(k, k), "daily_change": v}
+            for k, v in daily_account_changes.items()
+        ]
         
         return {
             "report_date": target_date.strftime("%Y-%m-%d"),
             "report_date_formatted": target_date.strftime("%d/%m/%Y"),
             "summary": {
+                "total_sales": total_sales,
                 "cash_sales": cash_sales,
+                "vodafone_sales": vodafone_sales,
+                "instapay_sales": instapay_sales,
                 "deferred_sales": deferred_sales,
                 "deferred_collections": deferred_collections,
                 "deferred_collections_cash": deferred_collections_cash,
+                "deferred_collections_vodafone": deferred_collections_vodafone,
+                "deferred_collections_instapay": deferred_collections_instapay,
                 "total_expenses": total_expenses,
-                "net_daily_income": cash_sales + deferred_collections - total_expenses
+                "net_daily_income": net_daily_income
             },
-            "deferred_collections_by_method": deferred_collections_by_method,
             "daily_account_changes": formatted_account_changes,
             "details": {
                 "invoices_count": len(invoices),
@@ -2424,7 +2440,9 @@ async def get_daily_sales_report(report_date: str = None, company_id: str = "els
         logger.error(f"Error generating daily sales report: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Suppliers endpoints
+
+
+
 @api_router.get("/suppliers", response_model=List[Supplier])
 async def get_suppliers(company_id: str = "elsawy"):
     """Get all suppliers"""

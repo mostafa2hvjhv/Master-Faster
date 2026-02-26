@@ -2073,12 +2073,12 @@ const DailySalesReport = () => {
           </div>
 
           {/* Main Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             {/* مبيعات اليوم */}
             <div className="bg-yellow-100 border-2 border-yellow-500 rounded-xl p-6 text-center shadow-lg">
-              <h3 className="text-lg font-semibold text-yellow-800 mb-2">مبيعات اليوم</h3>
+              <h3 className="text-lg font-semibold text-yellow-800 mb-2">📊 مبيعات اليوم</h3>
               <p className="text-3xl font-bold text-yellow-700">
-                {formatNumber(reportData.summary.cash_sales + reportData.summary.deferred_sales)} {currency}
+                {formatNumber(reportData.summary.total_sales)} {currency}
               </p>
               <p className="text-sm text-yellow-600 mt-2">
                 {reportData.details.invoices_count} فاتورة
@@ -2091,16 +2091,34 @@ const DailySalesReport = () => {
               <p className="text-3xl font-bold text-orange-700">
                 {formatNumber(reportData.summary.cash_sales)} {currency}
               </p>
-              <p className="text-sm text-orange-600 mt-2">مبيعات نقدية</p>
             </div>
 
+            {/* فودافون */}
+            <div className="bg-red-100 border-2 border-red-500 rounded-xl p-6 text-center shadow-lg">
+              <h3 className="text-lg font-semibold text-red-800 mb-2">📱 فودافون</h3>
+              <p className="text-3xl font-bold text-red-700">
+                {formatNumber(reportData.summary.vodafone_sales)} {currency}
+              </p>
+            </div>
+
+            {/* انستاباي */}
+            <div className="bg-purple-100 border-2 border-purple-500 rounded-xl p-6 text-center shadow-lg">
+              <h3 className="text-lg font-semibold text-purple-800 mb-2">💳 انستاباي</h3>
+              <p className="text-3xl font-bold text-purple-700">
+                {formatNumber(reportData.summary.instapay_sales)} {currency}
+              </p>
+            </div>
+          </div>
+
+          {/* Second Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {/* آجل */}
             <div className="bg-emerald-100 border-2 border-emerald-600 rounded-xl p-6 text-center shadow-lg">
               <h3 className="text-lg font-semibold text-emerald-800 mb-2">📝 آجل</h3>
               <p className="text-3xl font-bold text-emerald-700">
                 {formatNumber(reportData.summary.deferred_sales)} {currency}
               </p>
-              <p className="text-sm text-emerald-600 mt-2">مبيعات آجلة</p>
+              <p className="text-sm text-emerald-600 mt-2">فواتير آجل غير مدفوعة</p>
             </div>
 
             {/* تحصيل من الآجل */}
@@ -2109,27 +2127,16 @@ const DailySalesReport = () => {
               <p className="text-3xl font-bold text-pink-700">
                 {formatNumber(reportData.summary.deferred_collections)} {currency}
               </p>
-              <p className="text-sm text-pink-600 mt-2">محصل من فواتير سابقة</p>
-            </div>
-          </div>
-
-          {/* Second Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {/* تحصيل من الآجل نقدي */}
-            <div className="bg-blue-50 border-2 border-blue-400 rounded-xl p-6 text-center shadow-lg">
-              <h3 className="text-lg font-semibold text-blue-800 mb-2">💵 تحصيل من الآجل نقدي</h3>
-              <p className="text-3xl font-bold text-blue-700">
-                {formatNumber(reportData.summary.deferred_collections_cash)} {currency}
-              </p>
+              <p className="text-sm text-pink-600 mt-2">فواتير سابقة محصلة اليوم</p>
             </div>
 
             {/* مصروفات */}
-            <div className="bg-red-50 border-2 border-red-400 rounded-xl p-6 text-center shadow-lg">
-              <h3 className="text-lg font-semibold text-red-800 mb-2">📤 مصروفات</h3>
-              <p className="text-3xl font-bold text-red-700">
+            <div className="bg-gray-100 border-2 border-gray-400 rounded-xl p-6 text-center shadow-lg">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">📤 مصروفات</h3>
+              <p className="text-3xl font-bold text-gray-700">
                 {formatNumber(reportData.summary.total_expenses)} {currency}
               </p>
-              <p className="text-sm text-red-600 mt-2">{reportData.details.expenses_count} مصروف</p>
+              <p className="text-sm text-gray-600 mt-2">{reportData.details.expenses_count} مصروف</p>
             </div>
 
             {/* صافي الدخل */}
@@ -2138,6 +2145,7 @@ const DailySalesReport = () => {
               <p className="text-3xl font-bold text-white">
                 {formatNumber(reportData.summary.net_daily_income)} {currency}
               </p>
+              <p className="text-sm text-green-100 mt-2">نقدي + فودافون + انستا + تحصيل</p>
             </div>
           </div>
 
@@ -2165,24 +2173,7 @@ const DailySalesReport = () => {
             </div>
           </div>
 
-          {/* Deferred Collections by Method */}
-          {Object.keys(reportData.deferred_collections_by_method || {}).length > 0 && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-                💳 تفاصيل التحصيل حسب طريقة الدفع
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {Object.entries(reportData.deferred_collections_by_method).map(([method, amount], index) => (
-                  <div key={index} className="bg-purple-50 border-2 border-purple-300 rounded-xl p-4 text-center">
-                    <h4 className="text-sm font-semibold text-purple-700 mb-2">{method}</h4>
-                    <p className="text-xl font-bold text-purple-600">
-                      {formatNumber(amount)} {currency}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
         </div>
       ) : (
         <div className="text-center py-10 text-gray-500">

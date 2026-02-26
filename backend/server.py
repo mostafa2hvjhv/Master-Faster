@@ -2817,7 +2817,7 @@ async def delete_material_pricing(pricing_id: str):
 async def export_material_pricing_excel(company_id: str = "elsawy"):
     """Export material pricing to Excel file"""
     try:
-        items = await db.material_pricing.find({"company_id": company_id}).to_list(None)
+        items = await db.material_pricing.find({"$or": [{"company_id": company_id}, {"company_id": {"$exists": False}}]}).to_list(None)
         
         if not items:
             raise HTTPException(status_code=404, detail="لا توجد تسعيرات للتصدير")
@@ -3977,8 +3977,12 @@ async def restore_from_uploaded_file(file: UploadFile = File(...), username: str
                 # Only delete THIS company's data (not all companies)
                 await collection.delete_many({"company_id": company_id})
                 
-                # Insert backup data
+                # Insert backup data - ensure company_id is set
                 if documents:
+                    for doc in documents:
+                        doc['company_id'] = company_id
+                        if '_id' in doc:
+                            del doc['_id']
                     await collection.insert_many(documents)
                 
                 restored_collections.append(collection_name)
@@ -4048,8 +4052,12 @@ async def restore_backup(backup_id: str, username: str = None, company_id: str =
                 # Only delete THIS company's data (not all companies)
                 await collection.delete_many({"company_id": company_id})
                 
-                # Insert backup data
+                # Insert backup data - ensure company_id is set
                 if documents:
+                    for doc in documents:
+                        doc['company_id'] = company_id
+                        if '_id' in doc:
+                            del doc['_id']
                     await collection.insert_many(documents)
                 
                 restored_collections.append(collection_name)
@@ -4236,8 +4244,12 @@ async def restore_from_drive(file_id: str, company_id: str = "elsawy"):
                     # Only delete THIS company's data (not all companies)
                     await collection.delete_many({"company_id": company_id})
                     
-                    # Insert backup data
+                    # Insert backup data - ensure company_id is set
                     if documents:
+                        for doc in documents:
+                            doc['company_id'] = company_id
+                            if '_id' in doc:
+                                del doc['_id']
                         await collection.insert_many(documents)
                     
                     restored_collections.append(collection_name)

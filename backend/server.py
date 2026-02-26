@@ -686,6 +686,8 @@ async def update_customer(customer_id: str, request: Request, company_id: str = 
         body = await request.json()
         customer = await db.customers.find_one({"id": customer_id, "company_id": company_id})
         if not customer:
+            customer = await db.customers.find_one({"id": customer_id})
+        if not customer:
             raise HTTPException(status_code=404, detail="العميل غير موجود")
         
         update_data = {}
@@ -727,6 +729,8 @@ async def get_customer_balance(customer_id: str, company_id: str = "elsawy"):
     """Get customer debt balance from unpaid invoices"""
     try:
         customer = await db.customers.find_one({"id": customer_id, "company_id": company_id})
+        if not customer:
+            customer = await db.customers.find_one({"id": customer_id})
         if not customer:
             raise HTTPException(status_code=404, detail="العميل غير موجود")
         

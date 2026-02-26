@@ -2813,6 +2813,125 @@ async def delete_material_pricing(pricing_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/excel/export/material-pricing")
+async def export_material_pricing_excel(company_id: str = "elsawy"):
+    """Export material pricing to Excel file"""
+    try:
+        items = await db.material_pricing.find({"company_id": company_id}).to_list(None)
+        
+        if not items:
+            raise HTTPException(status_code=404, detail="لا توجد تسعيرات للتصدير")
+        
+        df_data = []
+        for item in items:
+            df_data.append({
+                'material_type': item.get('material_type', ''),
+                'inner_diameter': item.get('inner_diameter', 0),
+                'outer_diameter': item.get('outer_diameter', 0),
+                'price_per_mm': item.get('price_per_mm', 0),
+                'manufacturing_cost_client1': item.get('manufacturing_cost_client1', 0),
+                'manufacturing_cost_client2': item.get('manufacturing_cost_client2', 0),
+                'manufacturing_cost_client3': item.get('manufacturing_cost_client3', 0),
+                'notes': item.get('notes', '')
+            })
+        
+        df = pd.DataFrame(df_data)
+        
+        # Create Excel file
+        current_date = datetime.now().strftime('%Y%m%d')
+        filename = f"material_pricing_export_{current_date}.xlsx"
+        temp_file = BACKUP_TEMP_DIR / filename
+        
+        with pd.ExcelWriter(str(temp_file), engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Material Pricing')
+        
+        return FileResponse(
+            path=str(temp_file),
+            filename=filename,
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            background=BackgroundTask(lambda: os.remove(str(temp_file)) if temp_file.exists() else None)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"خطأ في تصدير الملف: {str(e)}")
+
+@api_router.post("/excel/import/material-pricing")
+async def import_material_pricing_excel(file: UploadFile = File(...), company_id: str = "elsawy"):
+    """Import material pricing from Excel file"""
+    try:
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            raise HTTPException(status_code=400, detail="يجب أن يكون الملف بصيغة Excel (.xlsx أو .xls)")
+        
+        content = await file.read()
+        df = pd.read_excel(io.BytesIO(content))
+        
+        # Validate required columns
+        required_columns = ['material_type', 'inner_diameter', 'outer_diameter', 'price_per_mm']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            raise HTTPException(status_code=400, detail=f"أعمدة مفقودة: {', '.join(missing_columns)}")
+        
+        imported_count = 0
+        updated_count = 0
+        errors = []
+        
+        for index, row in df.iterrows():
+            try:
+                # Check if pricing already exists (same material_type + inner + outer)
+                existing = await db.material_pricing.find_one({
+                    "material_type": str(row['material_type']),
+                    "inner_diameter": float(row['inner_diameter']),
+                    "outer_diameter": float(row['outer_diameter']),
+                    "company_id": company_id
+                })
+                
+                if existing:
+                    # Update existing pricing
+                    await db.material_pricing.update_one(
+                        {"id": existing["id"]},
+                        {"$set": {
+                            "price_per_mm": float(row['price_per_mm']),
+                            "manufacturing_cost_client1": float(row.get('manufacturing_cost_client1', 0)),
+                            "manufacturing_cost_client2": float(row.get('manufacturing_cost_client2', 0)),
+                            "manufacturing_cost_client3": float(row.get('manufacturing_cost_client3', 0)),
+                            "notes": str(row.get('notes', '')),
+                            "updated_at": datetime.utcnow()
+                        }}
+                    )
+                    updated_count += 1
+                else:
+                    # Create new pricing
+                    pricing = MaterialPricing(
+                        material_type=str(row['material_type']),
+                        inner_diameter=float(row['inner_diameter']),
+                        outer_diameter=float(row['outer_diameter']),
+                        price_per_mm=float(row['price_per_mm']),
+                        manufacturing_cost_client1=float(row.get('manufacturing_cost_client1', 0)),
+                        manufacturing_cost_client2=float(row.get('manufacturing_cost_client2', 0)),
+                        manufacturing_cost_client3=float(row.get('manufacturing_cost_client3', 0)),
+                        notes=str(row.get('notes', ''))
+                    )
+                    pricing_dict = pricing.dict()
+                    pricing_dict["company_id"] = company_id
+                    await db.material_pricing.insert_one(pricing_dict)
+                    imported_count += 1
+                
+            except Exception as e:
+                errors.append(f"صف {index + 2}: {str(e)}")
+        
+        return {
+            "message": f"تم استيراد {imported_count} تسعيرة جديدة وتحديث {updated_count} تسعيرة",
+            "imported_count": imported_count,
+            "updated_count": updated_count,
+            "errors": errors
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"خطأ في استيراد الملف: {str(e)}")
+
 @api_router.post("/calculate-price")
 async def calculate_material_price(
     material_type: str,

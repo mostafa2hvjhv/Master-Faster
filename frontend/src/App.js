@@ -244,84 +244,53 @@ const Navigation = ({ currentPage, onPageChange }) => {
   const masterPages = [
     { key: 'sales', label: 'المبيعات', icon: '💰' },
     { key: 'invoices', label: 'الفواتير', icon: '🧾' },
-    { key: 'deferred', label: 'الآجل', icon: '⏳' },
     { key: 'treasury', label: 'الخزينة', icon: '🏦' },
-    { key: 'expenses', label: 'المصروفات', icon: '💸' },
-    { key: 'inventory', label: 'المخزن الخامات', icon: '📦' },
-    { key: 'stock', label: 'مخزن إنتاج', icon: '🏪' },
+    { key: 'inventory', label: 'المخازن', icon: '📦' },
     { key: 'local', label: 'موردين', icon: '🏭' },
     { key: 'customers', label: 'إدارة العملاء', icon: '👥' },
     { key: 'work-orders', label: 'أمر شغل', icon: '⚙️' },
-    { key: 'main-treasury', label: 'الخزنة الرئيسية', icon: '🔐' },
-    { key: 'deleted-invoices', label: 'الفواتير المحذوفة', icon: '🗑️' },
-    { key: 'backup', label: 'النسخ الاحتياطي', icon: '💾' },
-    { key: 'dashboard', label: 'لوحة التحكم', icon: '📊' },
-    { key: 'daily-sales', label: 'كشف مبيعات يومي', icon: '📋' },
-    { key: 'revenue', label: 'الإيرادات', icon: '📈' },
     { key: 'pricing', label: 'التسعير', icon: '💲' },
-    { key: 'users', label: 'المستخدمين', icon: '👥' },
-    { key: 'settings', label: 'الضبط', icon: '⚙️' }
+    { key: 'dashboard', label: 'لوحة التحكم', icon: '📊' },
+    { key: 'settings', label: 'الإعدادات', icon: '⚙️' }
   ];
 
   // Dashboard is only for Elsawy
   const elsawyPages = [
     { key: 'sales', label: 'المبيعات', icon: '💰' },
     { key: 'invoices', label: 'الفواتير', icon: '🧾' },
-    { key: 'deferred', label: 'الآجل', icon: '⏳' },
     { key: 'treasury', label: 'الخزينة', icon: '🏦' },
-    { key: 'expenses', label: 'المصروفات', icon: '💸' },
-    { key: 'inventory', label: 'المخزن الخامات', icon: '📦' },
-    { key: 'stock', label: 'مخزن إنتاج', icon: '🏪' },
+    { key: 'inventory', label: 'المخازن', icon: '📦' },
     { key: 'local', label: 'موردين', icon: '🏭' },
     { key: 'customers', label: 'إدارة العملاء', icon: '👥' },
     { key: 'work-orders', label: 'أمر شغل', icon: '⚙️' },
-    { key: 'main-treasury', label: 'الخزنة الرئيسية', icon: '🔐' },
-    { key: 'deleted-invoices', label: 'الفواتير المحذوفة', icon: '🗑️' },
-    { key: 'backup', label: 'النسخ الاحتياطي', icon: '💾' },
-    { key: 'dashboard', label: 'لوحة التحكم', icon: '📊' },
-    { key: 'daily-sales', label: 'كشف مبيعات يومي', icon: '📋' },
-    { key: 'revenue', label: 'الإيرادات', icon: '📈' },
     { key: 'pricing', label: 'التسعير', icon: '💲' },
-    { key: 'users', label: 'المستخدمين', icon: '👥' },
-    { key: 'settings', label: 'الضبط', icon: '⚙️' }
+    { key: 'dashboard', label: 'لوحة التحكم', icon: '📊' },
+    { key: 'settings', label: 'الإعدادات', icon: '⚙️' }
   ];
 
   const adminPages = [
     { key: 'sales', label: 'المبيعات', icon: '💰' },
     { key: 'invoices', label: 'الفواتير', icon: '🧾' },
-    { key: 'deferred', label: 'الآجل', icon: '⏳' },
     { key: 'treasury', label: 'الخزينة', icon: '🏦' },
-    { key: 'expenses', label: 'المصروفات', icon: '💸' },
-    { key: 'inventory', label: 'المخزن الخامات', icon: '📦' },
-    { key: 'stock', label: 'مخزن إنتاج', icon: '🏪' },
+    { key: 'inventory', label: 'المخازن', icon: '📦' },
     { key: 'local', label: 'موردين', icon: '🏭' },
     { key: 'customers', label: 'إدارة العملاء', icon: '👥' },
     { key: 'work-orders', label: 'أمر شغل', icon: '⚙️' },
-    { key: 'main-treasury', label: 'الخزنة الرئيسية', icon: '🔐' },
-    { key: 'deleted-invoices', label: 'الفواتير المحذوفة', icon: '🗑️' },
-    { key: 'backup', label: 'النسخ الاحتياطي', icon: '💾' },
-    { key: 'dashboard', label: 'لوحة التحكم', icon: '📊' },
-    { key: 'daily-sales', label: 'كشف مبيعات يومي', icon: '📋' },
-    { key: 'revenue', label: 'الإيرادات', icon: '📈' },
     { key: 'pricing', label: 'التسعير', icon: '💲' },
-    { key: 'users', label: 'المستخدمين', icon: '👥' },
-    { key: 'settings', label: 'الضبط', icon: '⚙️' }
+    { key: 'dashboard', label: 'لوحة التحكم', icon: '📊' },
+    { key: 'settings', label: 'الإعدادات', icon: '⚙️' }
   ];
 
   const userPages = [
     { key: 'sales', label: 'المبيعات', icon: '💰' },
     { key: 'invoices', label: 'الفواتير', icon: '🧾' },
-    { key: 'deferred', label: 'الآجل', icon: '⏳' },
     { key: 'treasury', label: 'الخزينة', icon: '🏦' },
-    { key: 'expenses', label: 'المصروفات', icon: '💸' },
-    { key: 'inventory', label: 'المخزن الخامات', icon: '📦' },
-    { key: 'stock', label: 'مخزن إنتاج', icon: '🏪' },
+    { key: 'inventory', label: 'المخازن', icon: '📦' },
     { key: 'local', label: 'موردين', icon: '🏭' },
     { key: 'customers', label: 'إدارة العملاء', icon: '👥' },
     { key: 'work-orders', label: 'أمر شغل', icon: '⚙️' },
-    { key: 'deleted-invoices', label: 'الفواتير المحذوفة', icon: '🗑️' },
-    { key: 'daily-sales', label: 'كشف مبيعات يومي', icon: '📋' },
-    { key: 'pricing', label: 'التسعير', icon: '💲' }
+    { key: 'pricing', label: 'التسعير', icon: '💲' },
+    { key: 'dashboard', label: 'لوحة التحكم', icon: '📊' }
   ];
 
   // Determine pages based on user role
@@ -12598,6 +12567,86 @@ const Settings = () => {
   );
 };
 
+
+// === HUB WRAPPER COMPONENTS ===
+const HubWrapper = ({ title, subtitle, icon, tabs, activeTab, setActiveTab, headerColor = 'blue' }) => (
+  <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className={`bg-gradient-to-l from-${headerColor}-600 to-${headerColor}-800 text-white p-5 shadow-lg`}>
+      <h1 className="text-2xl font-bold">{icon} {title}</h1>
+      <p className={`text-${headerColor}-200 text-sm mt-1`}>{subtitle}</p>
+      <div className="flex gap-1 mt-4">
+        {tabs.map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`px-5 py-2 rounded-t-xl text-sm font-semibold transition-all ${activeTab === tab.id ? 'bg-white text-gray-800 shadow' : `text-${headerColor}-200 hover:bg-white/20`
+              }`}>{tab.icon} {tab.label}</button>
+        ))}
+      </div>
+    </div>
+    <div>{tabs.find(t => t.id === activeTab)?.component}</div>
+  </div>
+);
+
+// 1. InvoiceHub
+const InvoiceHub = () => {
+  const [activeTab, setActiveTab] = useState('invoices');
+  return <HubWrapper title="الفواتير" subtitle="إدارة الفواتير - الآجل - المحذوفات" icon="🧾"
+    headerColor="blue" activeTab={activeTab} setActiveTab={setActiveTab}
+    tabs={[
+      { id: 'invoices', label: 'الفواتير', icon: '🧾', component: <Invoices /> },
+      { id: 'deferred', label: 'الآجل', icon: '⏳', component: <Deferred /> },
+      { id: 'deleted', label: 'المحذوفة', icon: '🗑️', component: <DeletedInvoices /> },
+    ]} />;
+};
+
+// 2. InventoryHub
+const InventoryHub = () => {
+  const [activeTab, setActiveTab] = useState('inventory');
+  return <HubWrapper title="المخازن" subtitle="مخزن الخامات - مخزن الإنتاج" icon="📦"
+    headerColor="emerald" activeTab={activeTab} setActiveTab={setActiveTab}
+    tabs={[
+      { id: 'inventory', label: 'مخزن الخامات', icon: '📦', component: <Inventory /> },
+      { id: 'stock', label: 'مخزن الإنتاج', icon: '🏪', component: <Stock /> },
+    ]} />;
+};
+
+// 3. DashboardHub
+const DashboardHub = () => {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  return <HubWrapper title="لوحة التحكم" subtitle="التقارير - المبيعات اليومية - الإيرادات" icon="📊"
+    headerColor="indigo" activeTab={activeTab} setActiveTab={setActiveTab}
+    tabs={[
+      { id: 'dashboard', label: 'لوحة التحكم', icon: '📊', component: <Dashboard /> },
+      { id: 'daily-sales', label: 'مبيعات اليوم', icon: '📋', component: <DailySalesReport /> },
+      { id: 'revenue', label: 'الإيرادات', icon: '📈', component: <Revenue /> },
+    ]} />;
+};
+
+// 4. SettingsHub
+const SettingsHub = () => {
+  const [activeTab, setActiveTab] = useState('settings');
+  return <HubWrapper title="الإعدادات" subtitle="الضبط - المستخدمين - النسخ الاحتياطي" icon="⚙️"
+    headerColor="gray" activeTab={activeTab} setActiveTab={setActiveTab}
+    tabs={[
+      { id: 'settings', label: 'الضبط', icon: '⚙️', component: <Settings /> },
+      { id: 'users', label: 'المستخدمين', icon: '👥', component: <Users /> },
+      { id: 'backup', label: 'النسخ الاحتياطي', icon: '💾', component: <Backup /> },
+    ]} />;
+};
+
+// 5. TreasuryHub
+const TreasuryHub = () => {
+  const [activeTab, setActiveTab] = useState('treasury');
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'master' || user?.username === 'Elsawy';
+  const tabs = [
+    { id: 'treasury', label: 'الخزينة', icon: '🏦', component: <Treasury /> },
+    ...(isAdmin ? [{ id: 'main-treasury', label: 'الخزنة الرئيسية', icon: '🔐', component: <MainTreasury /> }] : []),
+    { id: 'expenses', label: 'المصروفات', icon: '💸', component: <Expenses /> },
+  ];
+  return <HubWrapper title="الخزينة" subtitle="الخزينة - الخزنة الرئيسية - المصروفات" icon="🏦"
+    headerColor="amber" activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs} />;
+};
+
 // Main App Component
 const App = () => {
   const [currentPage, setCurrentPage] = useState('sales'); // Default to sales instead of dashboard
@@ -12607,30 +12656,28 @@ const App = () => {
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'dashboard':
-        return (user?.role === 'admin' || user?.role === 'master' || user?.username === 'Elsawy') ? <Dashboard /> : <Sales />;
-      case 'daily-sales': return <DailySalesReport />;
+      case 'dashboard': return <DashboardHub />;
+      case 'daily-sales': return <DashboardHub />;
       case 'sales': return <Sales />;
-      case 'inventory': return <Inventory />;
-      case 'stock': return <Stock />;
+      case 'inventory': return <InventoryHub />;
+      case 'stock': return <InventoryHub />;
       case 'local': return <Local />;
-      case 'deferred': return <Deferred />;
-      case 'expenses': return <Expenses />;
-      case 'revenue': return <Revenue />;
-      case 'treasury': return <Treasury />;
-      case 'main-treasury':
-        return (user?.role === 'admin' || user?.role === 'master' || user?.username === 'Elsawy') ? <MainTreasury /> : <Sales />;
-      case 'invoices': return <Invoices />;
-      case 'deleted-invoices': return <DeletedInvoices />;
+      case 'deferred': return <InvoiceHub />;
+      case 'expenses': return <TreasuryHub />;
+      case 'revenue': return <DashboardHub />;
+      case 'treasury': return <TreasuryHub />;
+      case 'main-treasury': return <TreasuryHub />;
+      case 'invoices': return <InvoiceHub />;
+      case 'deleted-invoices': return <InvoiceHub />;
       case 'customer-statement': return <CustomerHub />;
       case 'settle-account': return <CustomerHub />;
       case 'work-orders': return <WorkOrders />;
       case 'pricing': return <Pricing />;
       case 'customers': return <CustomerHub />;
-      case 'backup': return <Backup />;
-      case 'users': return <Users />;
-      case 'settings': return <Settings />;
-      default: return <Sales />; // Default to sales instead of dashboard
+      case 'backup': return <SettingsHub />;
+      case 'users': return <SettingsHub />;
+      case 'settings': return <SettingsHub />;
+      default: return <Sales />;
     }
   };
 

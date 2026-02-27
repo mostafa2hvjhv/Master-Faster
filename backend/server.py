@@ -2944,19 +2944,19 @@ async def export_material_pricing_excel(company_id: str = "elsawy"):
         
         df = pd.DataFrame(df_data)
         
-        # Create Excel file
+        # Create Excel in memory
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Material Pricing')
+        output.seek(0)
+        
         current_date = datetime.now().strftime('%Y%m%d')
         filename = f"material_pricing_export_{current_date}.xlsx"
-        temp_file = BACKUP_TEMP_DIR / filename
         
-        with pd.ExcelWriter(str(temp_file), engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Material Pricing')
-        
-        return FileResponse(
-            path=str(temp_file),
-            filename=filename,
+        return StreamingResponse(
+            output,
             media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            background=BackgroundTask(lambda: os.remove(str(temp_file)) if temp_file.exists() else None)
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
     except HTTPException:
         raise

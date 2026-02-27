@@ -3450,6 +3450,15 @@ async def permanently_delete_invoice(invoice_id: str):
             raise e
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.delete("/deleted-invoices/clear-all/confirm")
+async def clear_all_deleted_invoices(company_id: str = "elsawy"):
+    """Clear all deleted invoices"""
+    try:
+        result = await db.deleted_invoices.delete_many({"company_id": company_id})
+        return {"message": f"تم حذف {result.deleted_count} فاتورة نهائياً", "deleted_count": result.deleted_count}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Business logic function for inventory transactions
 async def create_inventory_transaction(transaction: InventoryTransactionCreate):
     """Create inventory transaction (in/out) - Business logic"""

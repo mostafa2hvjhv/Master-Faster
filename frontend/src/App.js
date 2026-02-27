@@ -6644,6 +6644,22 @@ const DeletedInvoices = () => {
     }
   };
 
+  const clearAllDeletedInvoices = async () => {
+    if (!window.confirm(`⚠️ تحذير خطير!\n\nهل أنت متأكد من حذف جميع الفواتير المحذوفة نهائياً؟\n\nعدد الفواتير: ${deletedInvoices.length}\n\nهذا الإجراء لا يمكن التراجع عنه!`)) {
+      return;
+    }
+    if (!window.confirm('تأكيد نهائي: هل أنت متأكد تماماً؟')) return;
+
+    try {
+      const response = await axios.delete(`${API}/deleted-invoices/clear-all/confirm`);
+      alert(response.data.message || 'تم إفراغ سلة المحذوفات');
+      fetchDeletedInvoices();
+    } catch (error) {
+      console.error('Error clearing deleted invoices:', error);
+      alert('حدث خطأ: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
   const filteredInvoices = deletedInvoices.filter(invoice => {
     const searchLower = searchTerm.toLowerCase();
     return (

@@ -12569,22 +12569,33 @@ const Settings = () => {
 
 
 // === HUB WRAPPER COMPONENTS ===
-const HubWrapper = ({ title, subtitle, icon, tabs, activeTab, setActiveTab, headerColor = 'blue' }) => (
-  <div className="min-h-screen bg-gray-50" dir="rtl">
-    <div className={`bg-gradient-to-l from-${headerColor}-600 to-${headerColor}-800 text-white p-5 shadow-lg`}>
-      <h1 className="text-2xl font-bold">{icon} {title}</h1>
-      <p className={`text-${headerColor}-200 text-sm mt-1`}>{subtitle}</p>
-      <div className="flex gap-1 mt-4">
-        {tabs.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`px-5 py-2 rounded-t-xl text-sm font-semibold transition-all ${activeTab === tab.id ? 'bg-white/25 text-white border-b-2 border-white shadow-inner' : 'text-white/60 hover:bg-white/10 hover:text-white/90'
-              }`}>{tab.icon} {tab.label}</button>
-        ))}
+const hubColors = {
+  blue: { from: '#2563eb', to: '#1e40af', light: 'rgba(255,255,255,0.25)' },
+  emerald: { from: '#059669', to: '#065f46', light: 'rgba(255,255,255,0.25)' },
+  indigo: { from: '#4f46e5', to: '#3730a3', light: 'rgba(255,255,255,0.25)' },
+  gray: { from: '#4b5563', to: '#1f2937', light: 'rgba(255,255,255,0.25)' },
+  amber: { from: '#d97706', to: '#92400e', light: 'rgba(255,255,255,0.25)' },
+};
+const HubWrapper = ({ title, subtitle, icon, tabs, activeTab, setActiveTab, headerColor = 'blue' }) => {
+  const colors = hubColors[headerColor] || hubColors.blue;
+  return (
+    <div className="min-h-screen bg-gray-50" dir="rtl">
+      <div style={{ background: `linear-gradient(to left, ${colors.from}, ${colors.to})` }} className="text-white p-5 shadow-lg">
+        <h1 className="text-2xl font-bold">{icon} {title}</h1>
+        <p className="text-white/70 text-sm mt-1">{subtitle}</p>
+        <div className="flex gap-1 mt-4">
+          {tabs.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              style={activeTab === tab.id ? { background: colors.light, borderBottom: '2px solid white' } : {}}
+              className={`px-5 py-2 rounded-t-xl text-sm font-semibold transition-all ${activeTab === tab.id ? 'text-white shadow-inner' : 'text-white/60 hover:text-white/90'
+                }`}>{tab.icon} {tab.label}</button>
+          ))}
+        </div>
       </div>
+      <div>{tabs.find(t => t.id === activeTab)?.component}</div>
     </div>
-    <div>{tabs.find(t => t.id === activeTab)?.component}</div>
-  </div>
-);
+  );
+};
 
 // 1. InvoiceHub
 const InvoiceHub = () => {

@@ -1201,7 +1201,7 @@ const Local = () => {
       ? 'تأكيد: سيتم إلغاء المعاملة وعكس تأثيرها على رصيد المورد\n\nهل تريد المتابعة؟'
       : 'تأكيد: سيتم حذف السجل وإعادة حساب رصيد المورد من باقي المعاملات\n\nهل تريد المتابعة؟';
 
-    if (!confirm(confirmMsg)) return;
+    if (!window.confirm(confirmMsg)) return;
 
     try {
       await axios.delete(`${API}/suppliers/transactions/${transactionId}`, {
@@ -1267,7 +1267,7 @@ const Local = () => {
   };
 
   const deleteSupplier = async (supplierId) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المورد؟ سيتم حذف جميع البيانات المرتبطة به.')) {
+    if (!window.confirm('هل أنت متأكد من حذف هذا المورد؟ سيتم حذف جميع البيانات المرتبطة به.')) {
       return;
     }
 
@@ -1332,7 +1332,7 @@ const Local = () => {
   };
 
   const deleteLocalProduct = async (productId) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المنتج المحلي؟ سيتم حذف جميع البيانات المرتبطة به.')) {
+    if (!window.confirm('هل أنت متأكد من حذف هذا المنتج المحلي؟ سيتم حذف جميع البيانات المرتبطة به.')) {
       return;
     }
 
@@ -1738,7 +1738,7 @@ const Dashboard = () => {
   };
 
   const clearAllData = async () => {
-    if (!confirm('هل أنت متأكد من حذف جميع البيانات؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
+    if (!window.confirm('هل أنت متأكد من حذف جميع البيانات؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
 
     try {
       // Clear all data from backend
@@ -2954,7 +2954,7 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
   };
 
   const clearAllInvoices = async () => {
-    if (!confirm('هل أنت متأكد من حذف جميع العناصر؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
+    if (!window.confirm('هل أنت متأكد من حذف جميع العناصر؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
 
     try {
       setItems([]);
@@ -3867,7 +3867,7 @@ const Stock = () => {
   };
 
   const clearAllRawMaterials = async () => {
-    if (!confirm('هل أنت متأكد من حذف جميع المواد الخام؟')) {
+    if (!window.confirm('هل أنت متأكد من حذف جميع المواد الخام؟')) {
       return;
     }
 
@@ -3882,7 +3882,7 @@ const Stock = () => {
   };
 
   const deleteRawMaterial = async (materialId) => {
-    if (!confirm('هل أنت متأكد من حذف هذه المادة الخام؟')) {
+    if (!window.confirm('هل أنت متأكد من حذف هذه المادة الخام؟')) {
       return;
     }
 
@@ -4011,7 +4011,7 @@ const Stock = () => {
   };
 
   const deleteFinishedProduct = async (productId) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المنتج النهائي؟')) {
+    if (!window.confirm('هل أنت متأكد من حذف هذا المنتج النهائي؟')) {
       return;
     }
 
@@ -4761,7 +4761,7 @@ const Expenses = () => {
   };
 
   const deleteExpense = async (expenseId) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المصروف؟')) return;
+    if (!window.confirm('هل أنت متأكد من حذف هذا المصروف؟')) return;
 
     try {
       await axios.delete(`${API}/expenses/${expenseId}`);
@@ -4788,7 +4788,7 @@ const Expenses = () => {
   };
 
   const clearAllExpenses = async () => {
-    if (!confirm('هل أنت متأكد من حذف جميع المصروفات؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
+    if (!window.confirm('هل أنت متأكد من حذف جميع المصروفات؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
 
     try {
       await axios.delete(`${API}/expenses/clear-all`);
@@ -5433,7 +5433,7 @@ const Invoices = () => {
         return;
       }
 
-      if (!confirm(`هل أنت متأكد من تحويل طريقة الدفع من "${invoice.payment_method}" إلى "${newMethod}"؟\n\nسيتم تحديث الخزينة والحسابات تلقائياً.\n\nيتطلب كلمة مرور للتأكيد`)) {
+      if (!window.confirm(`هل أنت متأكد من تحويل طريقة الدفع من "${invoice.payment_method}" إلى "${newMethod}"؟\n\nسيتم تحديث الخزينة والحسابات تلقائياً.\n\nيتطلب كلمة مرور للتأكيد`)) {
         return;
       }
 
@@ -5453,7 +5453,7 @@ const Invoices = () => {
 
     const confirmMessage = `هل أنت متأكد من إلغاء الفاتورة ${invoice.invoice_number}؟\n\nسيتم:\n- إرجاع المواد المستخدمة إلى المخزن\n- عمل معاملة عكسية في الخزينة\n- نقل الفاتورة للمحذوفة\n\nيتطلب كلمة مرور للتأكيد`;
 
-    if (!confirm(confirmMessage)) {
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -5837,7 +5837,7 @@ const Invoices = () => {
   };
 
   const clearAllInvoices = async () => {
-    if (!confirm('هل أنت متأكد من حذف جميع الفواتير؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
+    if (!window.confirm('هل أنت متأكد من حذف جميع الفواتير؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
 
     try {
       await axios.delete(`${API}/invoices/clear-all`);
@@ -6613,7 +6613,7 @@ const DeletedInvoices = () => {
   };
 
   const handleRestore = async (invoiceId, invoiceNumber) => {
-    if (!confirm(`هل أنت متأكد من استعادة الفاتورة ${invoiceNumber}؟\n\nملاحظة: سيتم استعادة الفاتورة فقط، لن يتم استرجاع المواد أو الخزينة تلقائياً`)) {
+    if (!window.confirm(`هل أنت متأكد من استعادة الفاتورة ${invoiceNumber}؟\n\nملاحظة: سيتم استعادة الفاتورة فقط، لن يتم استرجاع المواد أو الخزينة تلقائياً`)) {
       return;
     }
 
@@ -6630,7 +6630,7 @@ const DeletedInvoices = () => {
   };
 
   const handlePermanentDelete = async (invoiceId, invoiceNumber) => {
-    if (!confirm(`⚠️ تحذير: هل أنت متأكد من حذف الفاتورة ${invoiceNumber} نهائياً؟\n\nهذا الإجراء لا يمكن التراجع عنه!`)) {
+    if (!window.confirm(`⚠️ تحذير: هل أنت متأكد من حذف الفاتورة ${invoiceNumber} نهائياً؟\n\nهذا الإجراء لا يمكن التراجع عنه!`)) {
       return;
     }
 
@@ -7399,7 +7399,7 @@ const SettleAccount = () => {
       return;
     }
 
-    if (!confirm(`هل أنت متأكد من تصفية حساب العميل بمبلغ ${parseFloat(amountPaid).toFixed(2)} ${currency}؟\n\nسيتم توزيع المبلغ على الفواتير الآجلة من الأقدم للأحدث`)) {
+    if (!window.confirm(`هل أنت متأكد من تصفية حساب العميل بمبلغ ${parseFloat(amountPaid).toFixed(2)} ${currency}؟\n\nسيتم توزيع المبلغ على الفواتير الآجلة من الأقدم للأحدث`)) {
       return;
     }
 
@@ -7469,7 +7469,7 @@ const SettleAccount = () => {
       `⚠️ ملاحظة: تسوية داخلية بدون تأثير على الخزينة\n\n` +
       `هل تريد المتابعة؟`;
 
-    if (!confirm(confirmMessage)) {
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -8012,7 +8012,7 @@ const WorkOrders = () => {
   };
 
   const clearAllWorkOrders = async () => {
-    if (!confirm('هل أنت متأكد من حذف جميع أوامر الشغل؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
+    if (!window.confirm('هل أنت متأكد من حذف جميع أوامر الشغل؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
 
     try {
       await axios.delete(`${API}/work-orders/clear-all`);
@@ -8025,7 +8025,7 @@ const WorkOrders = () => {
   };
 
   const deleteWorkOrder = async (workOrderId) => {
-    if (!confirm('هل أنت متأكد من حذف أمر الشغل هذا؟')) return;
+    if (!window.confirm('هل أنت متأكد من حذف أمر الشغل هذا؟')) return;
 
     try {
       await axios.delete(`${API}/work-orders/${workOrderId}`);
@@ -8642,7 +8642,7 @@ const Treasury = () => {
   };
 
   const clearAccount = async (accountId) => {
-    if (!confirm('هل أنت متأكد من تصفير هذا الحساب؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
+    if (!window.confirm('هل أنت متأكد من تصفير هذا الحساب؟ هذا الإجراء لا يمكن التراجع عنه.')) return;
 
     const account = accounts.find(acc => acc.id === accountId);
     if (!account || account.balance === 0) {
@@ -8705,7 +8705,7 @@ const Treasury = () => {
       ? 'تأكيد: سيتم إلغاء المعاملة وعكس تأثيرها على الحساب\n\nهل تريد المتابعة؟'
       : 'تأكيد: سيتم حذف السجل فقط بدون عكس المعاملة\n\n⚠️ قد يؤثر على دقة الأرصدة\n\nهل تريد المتابعة؟';
 
-    if (!confirm(confirmMsg)) return;
+    if (!window.confirm(confirmMsg)) return;
 
     try {
       await axios.delete(`${API}/treasury/transactions/${transactionId}`, {
@@ -9372,7 +9372,7 @@ const Backup = () => {
         ? `هل أنت متأكد من حذف آخر فاتورة؟\n\n⚠️ سيتم:\n• نقل الفاتورة للمحذوفة\n• استرجاع المواد للمخزن\n• عكس عمليات الخزينة`
         : `هل أنت متأكد من حذف آخر فاتورتين؟\n\n⚠️ سيتم:\n• نقل الفواتير للمحذوفة\n• استرجاع المواد للمخزن\n• عكس عمليات الخزينة`;
 
-    if (!confirm(confirmMessage)) {
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -9462,7 +9462,7 @@ const Backup = () => {
   };
 
   const createBackup = async () => {
-    if (!confirm('هل تريد إنشاء نسخة احتياطية محلية الآن؟')) {
+    if (!window.confirm('هل تريد إنشاء نسخة احتياطية محلية الآن؟')) {
       return;
     }
 
@@ -9588,12 +9588,12 @@ const Backup = () => {
   };
 
   const restoreBackup = async (backupId, createdAt) => {
-    if (!confirm(`⚠️ تحذير خطير!\n\nهل أنت متأكد من استرجاع النسخة الاحتياطية؟\n\nالتاريخ: ${new Date(createdAt).toLocaleString('ar-EG')}\n\nسيتم حذف جميع البيانات الحالية واستبدالها بالنسخة الاحتياطية!\n\nهذا الإجراء لا يمكن التراجع عنه!`)) {
+    if (!window.confirm(`⚠️ تحذير خطير!\n\nهل أنت متأكد من استرجاع النسخة الاحتياطية؟\n\nالتاريخ: ${new Date(createdAt).toLocaleString('ar-EG')}\n\nسيتم حذف جميع البيانات الحالية واستبدالها بالنسخة الاحتياطية!\n\nهذا الإجراء لا يمكن التراجع عنه!`)) {
       return;
     }
 
     // Second confirmation
-    if (!confirm('تأكيد نهائي: هل أنت متأكد تماماً؟')) {
+    if (!window.confirm('تأكيد نهائي: هل أنت متأكد تماماً؟')) {
       return;
     }
 
@@ -9617,7 +9617,7 @@ const Backup = () => {
   };
 
   const deleteBackup = async (backupId, createdAt) => {
-    if (!confirm(`هل تريد حذف النسخة الاحتياطية؟\n\nالتاريخ: ${new Date(createdAt).toLocaleString('ar-EG')}\n\nهذا الإجراء لا يمكن التراجع عنه!`)) {
+    if (!window.confirm(`هل تريد حذف النسخة الاحتياطية؟\n\nالتاريخ: ${new Date(createdAt).toLocaleString('ar-EG')}\n\nهذا الإجراء لا يمكن التراجع عنه!`)) {
       return;
     }
 
@@ -9690,11 +9690,11 @@ const Backup = () => {
   };
 
   const restoreFromDrive = async (fileId, fileName) => {
-    if (!confirm(`⚠️ تحذير!\n\nهل أنت متأكد من استرجاع النسخة الاحتياطية من Google Drive؟\n\nملف: ${fileName}\n\nسيتم حذف جميع البيانات الحالية!`)) {
+    if (!window.confirm(`⚠️ تحذير!\n\nهل أنت متأكد من استرجاع النسخة الاحتياطية من Google Drive؟\n\nملف: ${fileName}\n\nسيتم حذف جميع البيانات الحالية!`)) {
       return;
     }
 
-    if (!confirm('تأكيد نهائي: هل أنت متأكد تماماً؟')) {
+    if (!window.confirm('تأكيد نهائي: هل أنت متأكد تماماً؟')) {
       return;
     }
 
@@ -9715,7 +9715,7 @@ const Backup = () => {
   };
 
   const deleteFromDrive = async (fileId, fileName) => {
-    if (!confirm(`هل تريد حذف الملف من Google Drive؟\n\n${fileName}\n\nهذا الإجراء لا يمكن التراجع عنه!`)) {
+    if (!window.confirm(`هل تريد حذف الملف من Google Drive؟\n\n${fileName}\n\nهذا الإجراء لا يمكن التراجع عنه!`)) {
       return;
     }
 
@@ -10284,7 +10284,7 @@ const Users = () => {
       return;
     }
 
-    if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟')) return;
+    if (!window.confirm('هل أنت متأكد من حذف هذا المستخدم؟')) return;
 
     try {
       await axios.delete(`${API}/users/${userId}`);
@@ -11399,7 +11399,7 @@ const Pricing = () => {
   };
 
   const deleteMaterialPricing = async (pricingId) => {
-    if (!confirm('هل أنت متأكد من حذف هذه التسعيرة؟')) {
+    if (!window.confirm('هل أنت متأكد من حذف هذه التسعيرة؟')) {
       return;
     }
 

@@ -12577,7 +12577,7 @@ const HubWrapper = ({ title, subtitle, icon, tabs, activeTab, setActiveTab, head
       <div className="flex gap-1 mt-4">
         {tabs.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`px-5 py-2 rounded-t-xl text-sm font-semibold transition-all ${activeTab === tab.id ? 'bg-white text-gray-800 shadow' : `text-${headerColor}-200 hover:bg-white/20`
+            className={`px-5 py-2 rounded-t-xl text-sm font-semibold transition-all ${activeTab === tab.id ? 'bg-white/25 text-white border-b-2 border-white shadow-inner' : 'text-white/60 hover:bg-white/10 hover:text-white/90'
               }`}>{tab.icon} {tab.label}</button>
         ))}
       </div>

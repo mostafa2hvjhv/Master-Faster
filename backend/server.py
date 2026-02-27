@@ -3090,7 +3090,7 @@ async def calculate_material_price(
 
 # Treasury Reset API (Only for Elsawy)
 @api_router.post("/treasury/reset")
-async def reset_treasury(username: str):
+async def reset_treasury(username: str, company_id: str = "elsawy"):
     """Reset all treasury data - Only for Elsawy user"""
     try:
         # Security check - only Elsawy can perform this operation

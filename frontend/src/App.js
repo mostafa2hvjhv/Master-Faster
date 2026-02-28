@@ -623,7 +623,7 @@ const Inventory = () => {
               if (!window.confirm(`⚠️ هل أنت متأكد من حذف جميع عناصر المخزون؟\n\nعدد العناصر: ${inventory.length}\n\nهذا الإجراء لا يمكن التراجع عنه!`)) return;
               if (!window.confirm('تأكيد نهائي: هل أنت متأكد تماماً؟')) return;
               try {
-                const response = await axios.delete(`${API}/raw-materials/clear-all`);
+                const response = await axios.delete(`${API}/inventory/clear-all`);
                 alert(response.data.message || 'تم حذف جميع الخامات');
                 fetchInventoryItems();
               } catch (error) {

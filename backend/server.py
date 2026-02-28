@@ -2713,6 +2713,15 @@ async def get_inventory(company_id: str = "elsawy"):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.delete("/inventory/clear-all")
+async def clear_all_inventory(company_id: str = "elsawy"):
+    """Clear all inventory items"""
+    try:
+        result = await db.inventory_items.delete_many({"company_id": company_id})
+        return {"message": f"تم حذف {result.deleted_count} عنصر من المخزون", "deleted_count": result.deleted_count}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/inventory/low-stock")
 async def get_low_stock_items(company_id: str = "elsawy"):
     """Get items with stock below minimum level"""

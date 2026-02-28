@@ -2880,6 +2880,10 @@ async def get_material_pricing():
         pricings = await db.material_pricing.find({}).sort("created_at", -1).to_list(None)
         for p in pricings:
             p.pop("_id", None)
+            # Convert datetime objects to ISO strings for JSON serialization
+            for key in ["created_at", "updated_at"]:
+                if key in p and hasattr(p[key], 'isoformat'):
+                    p[key] = p[key].isoformat()
         return pricings
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

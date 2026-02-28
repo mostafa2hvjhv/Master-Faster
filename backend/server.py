@@ -2880,10 +2880,6 @@ async def get_material_pricing():
         pricings = await db.material_pricing.find({}).sort("created_at", -1).to_list(None)
         for p in pricings:
             p.pop("_id", None)
-            # Convert datetime objects to ISO strings for JSON serialization
-            for key in ["created_at", "updated_at"]:
-                if key in p and hasattr(p[key], 'isoformat'):
-                    p[key] = p[key].isoformat()
         return pricings
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -3574,7 +3570,7 @@ async def check_inventory_availability(
 
 # Excel Import/Export endpoints
 @api_router.post("/excel/import/inventory")
-async def import_inventory_excel(file: UploadFile = File(...)):
+async def import_inventory_excel(file: UploadFile = File(...), company_id: str = "elsawy"):
     """Import inventory items from Excel file"""
     try:
         if not file.filename.endswith(('.xlsx', '.xls')):
@@ -3599,7 +3595,8 @@ async def import_inventory_excel(file: UploadFile = File(...)):
                 existing_item = await db.inventory_items.find_one({
                     "material_type": row['material_type'],
                     "inner_diameter": float(row['inner_diameter']),
-                    "outer_diameter": float(row['outer_diameter'])
+                    "outer_diameter": float(row['outer_diameter']),
+                    "company_id": company_id
                 })
                 
                 if existing_item:
@@ -3625,7 +3622,9 @@ async def import_inventory_excel(file: UploadFile = File(...)):
                         min_stock_level=int(row.get('min_stock_level', 2)),
                         notes=str(row.get('notes', ''))
                     )
-                    await db.inventory_items.insert_one(inventory_item.dict())
+                    obj = inventory_item.dict()
+                    obj["company_id"] = company_id
+                    await db.inventory_items.insert_one(obj)
                 
                 imported_count += 1
                 
@@ -3705,7 +3704,7 @@ async def export_inventory_excel():
         raise HTTPException(status_code=500, detail=f"خطأ في تصدير الملف: {str(e)}")
 
 @api_router.post("/excel/import/raw-materials")
-async def import_raw_materials_excel(file: UploadFile = File(...)):
+async def import_raw_materials_excel(file: UploadFile = File(...), company_id: str = "elsawy"):
     """Import raw materials from Excel file"""
     try:
         if not file.filename.endswith(('.xlsx', '.xls')):
@@ -3735,7 +3734,9 @@ async def import_raw_materials_excel(file: UploadFile = File(...)):
                     unit_code=str(row['unit_code']),
                     cost_per_mm=float(row['cost_per_mm'])
                 )
-                await db.raw_materials.insert_one(raw_material.dict())
+                obj = raw_material.dict()
+                obj["company_id"] = company_id
+                await db.raw_materials.insert_one(obj)
                 imported_count += 1
                 
             except Exception as e:

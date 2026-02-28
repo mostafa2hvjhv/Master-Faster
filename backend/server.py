@@ -2985,6 +2985,11 @@ async def import_material_pricing_excel(file: UploadFile = File(...), company_id
         
         for index, row in df.iterrows():
             try:
+                # Skip non-data rows (e.g. Arabic description headers)
+                try:
+                    float(row['inner_diameter'])
+                except (ValueError, TypeError):
+                    continue
                 # Check if pricing already exists (same material_type + inner + outer)
                 existing = await db.material_pricing.find_one({
                     "material_type": str(row['material_type']),

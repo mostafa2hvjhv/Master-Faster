@@ -544,9 +544,10 @@ async def migrate_company_id():
     """Add company_id='elsawy' to all existing documents that don't have one"""
     collections = [
         'customers', 'suppliers', 'invoices', 'payments', 'expenses',
-        'raw_materials', 'finished_products', 'inventory', 'inventory_transactions',
+        'raw_materials', 'finished_products', 'inventory_items', 'inventory_transactions',
         'local_products', 'supplier_transactions', 'treasury_transactions',
-        'work_orders', 'users', 'deleted_invoices', 'company_settings'
+        'work_orders', 'users', 'deleted_invoices', 'company_settings',
+        'material_pricing', 'main_treasury_transactions'
     ]
     
     total_updated = 0
@@ -2713,16 +2714,20 @@ async def get_inventory(company_id: str = "elsawy"):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/inventory/low-stock")
-async def get_low_stock_items():
+async def get_low_stock_items(company_id: str = "elsawy"):
     """Get items with stock below minimum level"""
     try:
         pipeline = [
             {
                 "$match": {
+                    "company_id": company_id,
                     "$expr": {
                         "$lt": ["$available_pieces", "$min_stock_level"]
                     }
                 }
+            },
+            {
+                "$project": {"_id": 0}
             }
         ]
         items = await db.inventory_items.aggregate(pipeline).to_list(None)

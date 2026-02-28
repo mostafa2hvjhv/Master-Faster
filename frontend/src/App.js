@@ -618,6 +618,22 @@ const Inventory = () => {
           >
             إضافة عنصر جديد
           </button>
+          <button
+            onClick={async () => {
+              if (!window.confirm(`⚠️ هل أنت متأكد من حذف جميع عناصر المخزون؟\n\nعدد العناصر: ${inventory.length}\n\nهذا الإجراء لا يمكن التراجع عنه!`)) return;
+              if (!window.confirm('تأكيد نهائي: هل أنت متأكد تماماً؟')) return;
+              try {
+                const response = await axios.delete(`${API}/raw-materials/clear-all`);
+                alert(response.data.message || 'تم حذف جميع الخامات');
+                fetchInventoryItems();
+              } catch (error) {
+                alert('حدث خطأ: ' + (error.response?.data?.detail || error.message));
+              }
+            }}
+            className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+          >
+            🗑️ حذف الكل
+          </button>
         </div>
       </div>
 

@@ -620,7 +620,7 @@ const Inventory = () => {
           </button>
           <button
             onClick={async () => {
-              if (!window.confirm(`⚠️ هل أنت متأكد من حذف جميع عناصر المخزون؟\n\nعدد العناصر: ${inventory.length}\n\nهذا الإجراء لا يمكن التراجع عنه!`)) return;
+              if (!window.confirm(`⚠️ هل أنت متأكد من حذف جميع عناصر المخزون؟\n\nعدد العناصر: ${inventoryItems.length}\n\nهذا الإجراء لا يمكن التراجع عنه!`)) return;
               if (!window.confirm('تأكيد نهائي: هل أنت متأكد تماماً؟')) return;
               try {
                 const response = await axios.delete(`${API}/inventory/clear-all`);

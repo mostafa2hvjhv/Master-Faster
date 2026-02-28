@@ -2873,12 +2873,14 @@ async def get_inventory_transactions_by_item(item_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Material Pricing APIs
-@api_router.get("/material-pricing", response_model=List[MaterialPricing])
+@api_router.get("/material-pricing")
 async def get_material_pricing():
     """Get all material pricing"""
     try:
         pricings = await db.material_pricing.find({}).sort("created_at", -1).to_list(None)
-        return [MaterialPricing(**pricing) for pricing in pricings]
+        for p in pricings:
+            p.pop("_id", None)
+        return pricings
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

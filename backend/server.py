@@ -5569,7 +5569,8 @@ async def settle_customer_account(
                 "amount": payment_for_this_invoice,
                 "payment_method": payment_method,
                 "date": datetime.now(timezone.utc).isoformat(),
-                "settled_by": username or "unknown"
+                "settled_by": username or "unknown",
+                "company_id": "elsawy"
             }
             await db.payments.insert_one(payment_record)
             payment_records.append(payment_record)
@@ -5585,7 +5586,10 @@ async def settle_customer_account(
                     reference=f"settlement-{invoice.get('invoice_number')}",
                     balance=payment_for_this_invoice
                 )
-                await db.treasury_transactions.insert_one(treasury_transaction.dict())
+                # IMPORTANT: Add company_id to treasury transaction
+                treasury_dict = treasury_transaction.dict()
+                treasury_dict["company_id"] = "elsawy"
+                await db.treasury_transactions.insert_one(treasury_dict)
             
             # Track paid invoice
             paid_invoices.append({

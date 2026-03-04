@@ -544,10 +544,9 @@ async def migrate_company_id():
     """Add company_id='elsawy' to all existing documents that don't have one"""
     collections = [
         'customers', 'suppliers', 'invoices', 'payments', 'expenses',
-        'raw_materials', 'finished_products', 'inventory_items', 'inventory_transactions',
+        'raw_materials', 'finished_products', 'inventory', 'inventory_transactions',
         'local_products', 'supplier_transactions', 'treasury_transactions',
-        'work_orders', 'users', 'deleted_invoices', 'company_settings',
-        'material_pricing', 'main_treasury_transactions'
+        'work_orders', 'users', 'deleted_invoices', 'company_settings'
     ]
     
     total_updated = 0
@@ -684,7 +683,7 @@ async def delete_customer(customer_id: str, company_id: str = "elsawy"):
 
 @api_router.put("/customers/{customer_id}")
 async def update_customer(customer_id: str, request: Request, company_id: str = "elsawy"):
-    """Update customer info (name, phone, address)"""
+    """Update customer info (name, phone, address) - supports merging customers"""
     try:
         body = await request.json()
         customer = await db.customers.find_one({"id": customer_id, "company_id": company_id})
@@ -694,22 +693,45 @@ async def update_customer(customer_id: str, request: Request, company_id: str = 
             raise HTTPException(status_code=404, detail="العميل غير موجود")
         
         update_data = {}
+        old_name = customer.get("name")
+        
         if "name" in body and body["name"]:
-            # Check name uniqueness within company
-            existing = await db.customers.find_one({"name": body["name"], "company_id": company_id, "id": {"$ne": customer_id}})
+            new_name = body["name"]
+            # Check if another customer with this name exists
+            existing = await db.customers.find_one({"name": new_name, "company_id": company_id, "id": {"$ne": customer_id}})
+            
             if existing:
-                raise HTTPException(status_code=409, detail=f"عميل بنفس الاسم موجود بالفعل: {body['name']}")
-            update_data["name"] = body["name"]
+                # MERGE: Transfer all invoices and payments to existing customer, then delete current
+                # Update invoices to use existing customer's name
+                await db.invoices.update_many(
+                    {"customer_name": old_name, "company_id": company_id},
+                    {"$set": {"customer_name": new_name, "customer_id": existing["id"]}}
+                )
+                # Update payments
+                await db.payments.update_many(
+                    {"customer_name": old_name, "company_id": company_id},
+                    {"$set": {"customer_name": new_name}}
+                )
+                # Delete the current customer (merged into existing)
+                await db.customers.delete_one({"id": customer_id})
+                
+                return {
+                    "message": f"تم دمج العميل '{old_name}' مع العميل '{new_name}' ✅",
+                    "merged": True,
+                    "target_customer_id": existing["id"]
+                }
+            else:
+                update_data["name"] = new_name
+        
         if "phone" in body:
             update_data["phone"] = body["phone"]
         if "address" in body:
             update_data["address"] = body["address"]
         
         if update_data:
-            # If name changed, update name in all related invoices
-            old_name = customer.get("name")
             await db.customers.update_one({"id": customer_id}, {"$set": update_data})
             
+            # If name changed, update name in all related invoices
             if "name" in update_data and update_data["name"] != old_name:
                 await db.invoices.update_many(
                     {"customer_name": old_name, "company_id": company_id},
@@ -722,6 +744,58 @@ async def update_customer(customer_id: str, request: Request, company_id: str = 
         
         updated = await db.customers.find_one({"id": customer_id}, {"_id": 0})
         return updated
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/customers-balances")
+async def get_all_customers_balances(company_id: str = "elsawy"):
+    """Get all customers with their debt balances in one query - OPTIMIZED"""
+    try:
+        # Use aggregation to calculate balances for all customers at once
+        pipeline = [
+            {"$match": {"company_id": company_id, "remaining_amount": {"$gt": 0}}},
+            {"$group": {
+                "_id": "$customer_name",
+                "total_debt": {"$sum": "$remaining_amount"},
+                "unpaid_invoices_count": {"$sum": 1}
+            }}
+        ]
+        
+        results = await db.invoices.aggregate(pipeline).to_list(None)
+        
+        # Convert to dictionary keyed by customer name
+        balances = {}
+        for r in results:
+            balances[r["_id"]] = {
+                "total_debt": r["total_debt"],
+                "unpaid_invoices_count": r["unpaid_invoices_count"]
+            }
+        
+        return balances
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/customers/{customer_id}/deferred-invoices")
+async def get_customer_deferred_invoices(customer_id: str, company_id: str = "elsawy"):
+    """Get deferred invoices for a specific customer - OPTIMIZED"""
+    try:
+        customer = await db.customers.find_one({"id": customer_id, "company_id": company_id}, {"_id": 0})
+        if not customer:
+            customer = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+        if not customer:
+            raise HTTPException(status_code=404, detail="العميل غير موجود")
+        
+        # Get only deferred invoices with remaining amount
+        invoices = await db.invoices.find({
+            "customer_name": customer["name"],
+            "company_id": company_id,
+            "payment_method": "آجل",
+            "remaining_amount": {"$gt": 0}
+        }, {"_id": 0}).sort("date", 1).to_list(None)
+        
+        return invoices
     except HTTPException:
         raise
     except Exception as e:
@@ -1028,8 +1102,8 @@ async def get_raw_materials(company_id: str = "elsawy"):
     # Define material type priority order: BUR-NBR-BT-BOOM-VT
     material_priority = {'BUR': 1, 'NBR': 2, 'BT': 3, 'BOOM': 4, 'VT': 5}
     
-    # Get all materials first
-    materials = await db.raw_materials.find({"company_id": company_id}).to_list(1000)
+    # Get all materials first, exclude _id
+    materials = await db.raw_materials.find({"company_id": company_id}, {"_id": 0}).to_list(1000)
     
     # Sort by material type priority, then by diameter
     sorted_materials = sorted(materials, key=lambda x: (
@@ -1038,7 +1112,7 @@ async def get_raw_materials(company_id: str = "elsawy"):
         x.get('outer_diameter', 0)   # Then outer diameter
     ))
     
-    return [RawMaterial(**material) for material in sorted_materials]
+    return sorted_materials
 
 @api_router.put("/raw-materials/{material_id}")
 async def update_raw_material(material_id: str, material: RawMaterialCreate):
@@ -1074,8 +1148,8 @@ async def create_finished_product(product: FinishedProductCreate, company_id: st
 
 @api_router.get("/finished-products", response_model=List[FinishedProduct])
 async def get_finished_products(company_id: str = "elsawy"):
-    products = await db.finished_products.find({"company_id": company_id}).to_list(1000)
-    return [FinishedProduct(**product) for product in products]
+    products = await db.finished_products.find({"company_id": company_id}, {"_id": 0}).to_list(1000)
+    return products
 
 @api_router.delete("/finished-products/clear-all")
 async def clear_all_finished_products(company_id: str = "elsawy"):
@@ -1582,6 +1656,46 @@ async def create_invoice(invoice: InvoiceCreate, supervisor_name: str = "", comp
     
     return invoice_obj
 
+@api_router.get("/invoices-summary")
+async def get_invoices_summary(company_id: str = "elsawy", limit: int = 100, skip: int = 0):
+    """Get invoices summary without items details - OPTIMIZED for list view"""
+    try:
+        # Only return essential fields for list view
+        projection = {
+            "_id": 0,
+            "id": 1,
+            "invoice_number": 1,
+            "customer_name": 1,
+            "invoice_title": 1,
+            "supervisor_name": 1,
+            "total_amount": 1,
+            "paid_amount": 1,
+            "remaining_amount": 1,
+            "payment_method": 1,
+            "status": 1,
+            "status_description": 1,
+            "payment_method_used": 1,
+            "date": 1,
+            "discount": 1
+        }
+        
+        invoices = await db.invoices.find(
+            {"company_id": company_id}, 
+            projection
+        ).sort("date", -1).skip(skip).limit(limit).to_list(limit)
+        
+        # Get total count for pagination
+        total_count = await db.invoices.count_documents({"company_id": company_id})
+        
+        return {
+            "invoices": invoices,
+            "total": total_count,
+            "limit": limit,
+            "skip": skip
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/invoices", response_model=List[Invoice])
 async def get_invoices(company_id: str = "elsawy"):
     invoices = await db.invoices.find({"company_id": company_id}).sort("date", -1).to_list(1000)
@@ -1663,6 +1777,11 @@ async def update_invoice(invoice_id: str, invoice_update: dict, password: str = 
         if 'items' in invoice_update:
             subtotal = sum(item.get('total_price', 0) for item in invoice_update['items'])
             invoice_update['subtotal'] = subtotal
+            # Also update total_amount if items changed
+            discount_amount = existing_invoice.get('discount', 0)
+            total_after_discount = subtotal - discount_amount
+            invoice_update['total_after_discount'] = total_after_discount
+            invoice_update['total_amount'] = total_after_discount
         else:
             # Get current subtotal from existing invoice
             subtotal = existing_invoice.get('subtotal', 0)
@@ -1690,6 +1809,22 @@ async def update_invoice(invoice_id: str, invoice_update: dict, password: str = 
                 'total_after_discount': total_after_discount,
                 'total_amount': total_after_discount
             })
+        
+        # CRITICAL: Update remaining_amount when total changes
+        # remaining_amount = total_amount - paid_amount
+        if 'total_amount' in invoice_update:
+            paid_amount = existing_invoice.get('paid_amount', 0)
+            new_total = invoice_update['total_amount']
+            new_remaining = max(0, new_total - paid_amount)
+            invoice_update['remaining_amount'] = new_remaining
+            
+            # Update status based on remaining amount
+            if new_remaining == 0:
+                invoice_update['status'] = 'مدفوعة'
+            elif paid_amount > 0:
+                invoice_update['status'] = 'مدفوعة جزئياً'
+            else:
+                invoice_update['status'] = 'غير مدفوعة'
         
         # Update the invoice
         result = await db.invoices.update_one(
@@ -2198,17 +2333,9 @@ async def transfer_funds(transfer: TransferRequest, company_id: str = "elsawy"):
 
 @api_router.get("/treasury/balances")
 async def get_account_balances(company_id: str = "elsawy"):
-    """Get current balances for all accounts"""
+    """Get current balances for all accounts - OPTIMIZED with aggregation"""
     try:
-        # Get all transactions
-        cf = {"company_id": company_id}
-        transactions = await db.treasury_transactions.find(cf).to_list(10000)
-        
-        # Get invoice data for automatic transactions
-        invoices = await db.invoices.find(cf).to_list(1000)
-        expenses = await db.expenses.find(cf).to_list(1000)
-        
-        # Calculate balances
+        # Initialize balances
         account_balances = {
             'cash': 0,
             'vodafone_elsawy': 0,
@@ -2216,35 +2343,46 @@ async def get_account_balances(company_id: str = "elsawy"):
             'deferred': 0,
             'instapay': 0,
             'yad_elsawy': 0,
-            'main_treasury': 0  # الخزنة الرئيسية
+            'main_treasury': 0
         }
         
-        # Add invoice amounts (only for deferred invoices that don't have treasury transactions)
-        payment_method_map = {
-            'نقدي': 'cash',
-            'فودافون 010': 'vodafone_elsawy',
-            'كاش 0100': 'vodafone_wael',
-            'آجل': 'deferred',
-            'انستاباي': 'instapay',
-            'يد الصاوي': 'yad_elsawy'
-        }
+        # 1. Calculate deferred balance from invoices (sum of total_amount for آجل invoices - original logic)
+        deferred_pipeline = [
+            {"$match": {"company_id": company_id, "payment_method": "آجل"}},
+            {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
+        ]
+        deferred_result = await db.invoices.aggregate(deferred_pipeline).to_list(1)
+        if deferred_result:
+            account_balances['deferred'] = deferred_result[0].get('total', 0)
         
-        # Only add deferred invoices directly (non-deferred invoices are handled by treasury transactions)
-        for invoice in invoices:
-            if invoice.get('payment_method') == 'آجل':
-                account_balances['deferred'] += invoice.get('total_amount', 0)
+        # 2. Calculate expenses total
+        expenses_pipeline = [
+            {"$match": {"company_id": company_id}},
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+        ]
+        expenses_result = await db.expenses.aggregate(expenses_pipeline).to_list(1)
+        if expenses_result:
+            account_balances['cash'] -= expenses_result[0].get('total', 0)
         
-        # Subtract expenses from cash
-        for expense in expenses:
-            account_balances['cash'] -= expense.get('amount', 0)
+        # 3. Calculate treasury transactions balances
+        transactions_pipeline = [
+            {"$match": {"company_id": company_id}},
+            {"$group": {
+                "_id": {
+                    "account_id": "$account_id",
+                    "transaction_type": "$transaction_type"
+                },
+                "total": {"$sum": "$amount"}
+            }}
+        ]
+        transactions_result = await db.treasury_transactions.aggregate(transactions_pipeline).to_list(None)
         
-        # Apply manual transactions
-        for transaction in transactions:
-            account_id = transaction.get('account_id')
+        for item in transactions_result:
+            account_id = item['_id']['account_id']
+            transaction_type = item['_id']['transaction_type']
+            amount = item['total']
+            
             if account_id in account_balances:
-                amount = transaction.get('amount', 0)
-                transaction_type = transaction.get('transaction_type')
-                
                 if transaction_type in ['income', 'transfer_in']:
                     account_balances[account_id] += amount
                 elif transaction_type in ['expense', 'transfer_out']:
@@ -2253,6 +2391,7 @@ async def get_account_balances(company_id: str = "elsawy"):
         return account_balances
         
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 # Daily Sales Report API
@@ -2699,8 +2838,8 @@ async def get_inventory(company_id: str = "elsawy"):
         # Define material type priority order: BUR-NBR-BT-BOOM-VT
         material_priority = {'BUR': 1, 'NBR': 2, 'BT': 3, 'BOOM': 4, 'VT': 5}
         
-        # Get all items first
-        items = await db.inventory_items.find({"company_id": company_id}).to_list(None)
+        # Get all items first, exclude _id
+        items = await db.inventory_items.find({"company_id": company_id}, {"_id": 0}).to_list(None)
         
         # Sort by material type priority, then by diameter
         sorted_items = sorted(items, key=lambda x: (
@@ -2713,30 +2852,22 @@ async def get_inventory(company_id: str = "elsawy"):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@api_router.delete("/inventory/clear-all")
-async def clear_all_inventory(company_id: str = "elsawy"):
-    """Clear all inventory items"""
-    try:
-        result = await db.inventory_items.delete_many({"company_id": company_id})
-        return {"message": f"تم حذف {result.deleted_count} عنصر من المخزون", "deleted_count": result.deleted_count}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @api_router.get("/inventory/low-stock")
-async def get_low_stock_items(company_id: str = "elsawy"):
+async def get_low_stock_items():
     """Get items with stock below minimum level"""
     try:
         pipeline = [
             {
                 "$match": {
-                    "company_id": company_id,
                     "$expr": {
                         "$lt": ["$available_pieces", "$min_stock_level"]
                     }
                 }
             },
             {
-                "$project": {"_id": 0}
+                "$project": {
+                    "_id": 0
+                }
             }
         ]
         items = await db.inventory_items.aggregate(pipeline).to_list(None)
@@ -2834,7 +2965,7 @@ async def delete_inventory_item(item_id: str):
 async def get_inventory_transactions():
     """Get all inventory transactions"""
     try:
-        transactions = await db.inventory_transactions.find({}).sort("date", -1).to_list(None)
+        transactions = await db.inventory_transactions.find({}, {"_id": 0}).sort("date", -1).to_list(None)
         
         # Clean transactions for response - handle old schema compatibility
         cleaned_transactions = []
@@ -2862,7 +2993,7 @@ async def get_inventory_transactions_by_item(item_id: str):
     """Get transactions for a specific inventory item"""
     try:
         transactions = await db.inventory_transactions.find(
-            {"inventory_item_id": item_id}
+            {"inventory_item_id": item_id}, {"_id": 0}
         ).sort("date", -1).to_list(None)
         
         # Clean transactions for response - handle old schema compatibility
@@ -4669,6 +4800,93 @@ async def startup_scheduler():
     scheduler.start()
     logger.info("Backup scheduler started - Daily backup at 7 PM")
 
+@app.on_event("startup")
+async def create_indexes():
+    """Create database indexes for better performance"""
+    try:
+        # Invoices indexes - most frequently queried
+        await db.invoices.create_index("company_id")
+        await db.invoices.create_index("customer_id")
+        await db.invoices.create_index("date")
+        await db.invoices.create_index([("company_id", 1), ("date", -1)])
+        await db.invoices.create_index([("company_id", 1), ("customer_id", 1)])
+        await db.invoices.create_index([("company_id", 1), ("payment_method", 1)])
+        await db.invoices.create_index("invoice_number")
+        
+        # Customers indexes
+        await db.customers.create_index("company_id")
+        await db.customers.create_index([("company_id", 1), ("name", 1)])
+        await db.customers.create_index("id", unique=True)
+        
+        # Payments indexes
+        await db.payments.create_index("company_id")
+        await db.payments.create_index("customer_id")
+        await db.payments.create_index("date")
+        await db.payments.create_index([("company_id", 1), ("date", -1)])
+        await db.payments.create_index([("company_id", 1), ("customer_id", 1)])
+        
+        # Expenses indexes
+        await db.expenses.create_index("company_id")
+        await db.expenses.create_index("date")
+        await db.expenses.create_index([("company_id", 1), ("date", -1)])
+        
+        # Raw materials indexes
+        await db.raw_materials.create_index("company_id")
+        await db.raw_materials.create_index("unit_code")
+        await db.raw_materials.create_index([("company_id", 1), ("material_type", 1)])
+        
+        # Inventory items indexes
+        await db.inventory_items.create_index("company_id")
+        await db.inventory_items.create_index("name")
+        await db.inventory_items.create_index([("company_id", 1), ("name", 1)])
+        
+        # Treasury transactions indexes
+        await db.treasury_transactions.create_index("company_id")
+        await db.treasury_transactions.create_index("date")
+        await db.treasury_transactions.create_index([("company_id", 1), ("date", -1)])
+        
+        # Main treasury transactions indexes
+        await db.main_treasury_transactions.create_index("company_id")
+        await db.main_treasury_transactions.create_index([("company_id", 1), ("date", -1)])
+        
+        # Suppliers indexes
+        await db.suppliers.create_index("company_id")
+        await db.suppliers.create_index("id", unique=True)
+        
+        # Supplier transactions indexes
+        await db.supplier_transactions.create_index("company_id")
+        await db.supplier_transactions.create_index("supplier_id")
+        await db.supplier_transactions.create_index([("company_id", 1), ("date", -1)])
+        await db.supplier_transactions.create_index([("supplier_id", 1), ("date", -1)])
+        
+        # Local products indexes
+        await db.local_products.create_index("company_id")
+        await db.local_products.create_index("supplier_id")
+        
+        # Work orders indexes
+        await db.work_orders.create_index("company_id")
+        await db.work_orders.create_index([("company_id", 1), ("created_at", -1)])
+        
+        # Deleted invoices indexes
+        await db.deleted_invoices.create_index("company_id")
+        await db.deleted_invoices.create_index([("company_id", 1), ("deleted_at", -1)])
+        
+        # Material pricing indexes
+        await db.material_pricing.create_index("company_id")
+        await db.material_pricing.create_index([("material_type", 1), ("inner_diameter", 1), ("outer_diameter", 1)])
+        
+        # Backups indexes
+        await db.backups.create_index("company_id")
+        await db.backups.create_index([("company_id", 1), ("created_at", -1)])
+        
+        # Invoice edit history indexes
+        await db.invoice_edit_history.create_index("invoice_id")
+        await db.invoice_edit_history.create_index([("invoice_id", 1), ("edited_at", -1)])
+        
+        logger.info("Database indexes created successfully for improved performance")
+    except Exception as e:
+        logger.error(f"Error creating indexes: {e}")
+
 @app.on_event("shutdown")
 async def shutdown_scheduler():
     """Shutdown scheduler"""
@@ -5335,7 +5553,10 @@ async def settle_customer_account(
                 {"id": invoice["id"]},
                 {"$set": {
                     "paid_amount": new_paid_amount,
-                    "remaining_amount": new_remaining_amount
+                    "remaining_amount": new_remaining_amount,
+                    "status": "مدفوعة" if new_remaining_amount == 0 else "مدفوعة جزئياً",
+                    "payment_method_used": payment_method if new_remaining_amount == 0 else None,
+                    "status_description": f"تم السداد بواسطة {payment_method}" if new_remaining_amount == 0 else "دفع جزئي"
                 }}
             )
             

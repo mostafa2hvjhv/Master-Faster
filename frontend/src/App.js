@@ -396,7 +396,7 @@ const Inventory = () => {
   const [currentView, setCurrentView] = useState('items'); // items, transactions, low-stock, add-item
   const [editingItem, setEditingItem] = useState(null); // للتعديل
   const [newItem, setNewItem] = useState({
-    material_type: 'NBR',
+    material_type: 'BUR',
     inner_diameter: '',
     outer_diameter: '',
     available_pieces: '',  // تغيير من available_height إلى available_pieces
@@ -404,7 +404,7 @@ const Inventory = () => {
     notes: ''
   });
   const [newTransaction, setNewTransaction] = useState({
-    material_type: 'NBR',
+    material_type: 'BUR',
     inner_diameter: '',
     outer_diameter: '',
     transaction_type: 'in',
@@ -414,7 +414,7 @@ const Inventory = () => {
   });
   const [searchTerm, setSearchTerm] = useState('');
 
-  const materialTypes = ['NBR', 'BUR', 'BT', 'VT', 'BOOM'];
+  const materialTypes = ['BUR', 'NBR', 'BT', 'VT', 'BOOM'];
 
   // Fetch functions
   const fetchInventoryItems = async () => {
@@ -486,7 +486,7 @@ const Inventory = () => {
       fetchLowStockItems();
       setCurrentView('items');
       setNewItem({
-        material_type: 'NBR',
+        material_type: 'BUR',
         inner_diameter: '',
         outer_diameter: '',
         available_pieces: '',
@@ -523,7 +523,7 @@ const Inventory = () => {
       fetchInventoryTransactions();
       fetchLowStockItems();
       setNewTransaction({
-        material_type: 'NBR',
+        material_type: 'BUR',
         inner_diameter: '',
         outer_diameter: '',
         transaction_type: 'in',
@@ -617,22 +617,6 @@ const Inventory = () => {
             className={`px-4 py-2 rounded ${currentView === 'add-item' ? 'bg-green-500 text-white' : 'bg-gray-200'}`}
           >
             إضافة عنصر جديد
-          </button>
-          <button
-            onClick={async () => {
-              if (!window.confirm(`⚠️ هل أنت متأكد من حذف جميع عناصر المخزون؟\n\nعدد العناصر: ${inventoryItems.length}\n\nهذا الإجراء لا يمكن التراجع عنه!`)) return;
-              if (!window.confirm('تأكيد نهائي: هل أنت متأكد تماماً؟')) return;
-              try {
-                const response = await axios.delete(`${API}/inventory/clear-all`);
-                alert(response.data.message || 'تم حذف جميع الخامات');
-                fetchInventoryItems();
-              } catch (error) {
-                alert('حدث خطأ: ' + (error.response?.data?.detail || error.message));
-              }
-            }}
-            className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
-          >
-            🗑️ حذف الكل
           </button>
         </div>
       </div>
@@ -963,7 +947,7 @@ const Inventory = () => {
               onClick={() => {
                 setEditingItem(null);
                 setNewItem({
-                  material_type: 'NBR',
+                  material_type: 'BUR',
                   inner_diameter: '',
                   outer_diameter: '',
                   available_pieces: '',
@@ -2175,7 +2159,7 @@ const Sales = () => {
   const [invoiceTitle, setInvoiceTitle] = useState(''); // عنوان الفاتورة
   const [currentItem, setCurrentItem] = useState({
     seal_type: 'RSL',
-    material_type: 'NBR',
+    material_type: 'BUR',
     inner_diameter: '',
     outer_diameter: '',
     height: '',
@@ -2246,7 +2230,7 @@ const Sales = () => {
   };
 
   const sealTypes = ['RSL', 'RS', 'RSS', 'RSE', 'B17', 'B3', 'B14', 'B1', 'R15', 'R17', 'W1', 'W4', 'W5', 'W11', 'WBT', 'XR', 'CH', 'VR'];
-  const materialTypes = ['NBR', 'BUR', 'BT', 'VT', 'BOOM'];
+  const materialTypes = ['BUR', 'NBR', 'BT', 'VT', 'BOOM'];
 
   useEffect(() => {
     fetchCustomers();
@@ -2445,7 +2429,7 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
       setItems([...items, item]);
       setCurrentItem({
         seal_type: 'RSL',
-        material_type: 'NBR',
+        material_type: 'BUR',
         inner_diameter: '',
         outer_diameter: '',
         height: '',
@@ -2509,7 +2493,7 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
       });
       setCurrentItem({
         seal_type: 'RSL',
-        material_type: 'NBR',
+        material_type: 'BUR',
         inner_diameter: '',
         outer_diameter: '',
         height: '',
@@ -2540,7 +2524,7 @@ ${selectedMaterials.map(sel => `- ${sel.material.unit_code}: ${sel.seals} سيل
     // Set current item for editing
     setCurrentItem({
       seal_type: item.seal_type || 'RSL',
-      material_type: item.material_type || 'NBR',
+      material_type: item.material_type || 'BUR',
       inner_diameter: item.inner_diameter?.toString() || '',
       outer_diameter: item.outer_diameter?.toString() || '',
       height: item.height?.toString() || '',
@@ -3751,7 +3735,7 @@ const Stock = () => {
   const [finishedProducts, setFinishedProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState(''); // للبحث
   const [newRawMaterial, setNewRawMaterial] = useState({
-    material_type: 'NBR',
+    material_type: 'BUR',
     inner_diameter: '',
     outer_diameter: '',
     height: '',
@@ -3760,7 +3744,7 @@ const Stock = () => {
   });
   const [newFinishedProduct, setNewFinishedProduct] = useState({
     seal_type: 'RSL',
-    material_type: 'NBR',
+    material_type: 'BUR',
     inner_diameter: '',
     outer_diameter: '',
     height: '',
@@ -3768,7 +3752,7 @@ const Stock = () => {
     unit_price: ''
   });
 
-  const materialTypes = ['NBR', 'BUR', 'BT', 'VT', 'BOOM'];
+  const materialTypes = ['BUR', 'NBR', 'BT', 'VT', 'BOOM'];
   const sealTypes = ['RSL', 'RS', 'RSS', 'RSE', 'B17', 'B3', 'B14', 'B1', 'R15', 'R17', 'W1', 'W4', 'W5', 'W11', 'WBT', 'XR', 'CH', 'VR'];
 
   // دالة تصفية البحث
@@ -3869,7 +3853,7 @@ const Stock = () => {
 
       fetchRawMaterials();
       setNewRawMaterial({
-        material_type: 'NBR',
+        material_type: 'BUR',
         inner_diameter: '',
         outer_diameter: '',
         height: '',
@@ -3999,7 +3983,7 @@ const Stock = () => {
       fetchFinishedProducts();
       setNewFinishedProduct({
         seal_type: 'RSL',
-        material_type: 'NBR',
+        material_type: 'BUR',
         inner_diameter: '',
         outer_diameter: '',
         height: '',
@@ -4376,6 +4360,7 @@ const Deferred = () => {
   const [unpaidInvoices, setUnpaidInvoices] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [viewingInvoice, setViewingInvoice] = useState(null); // لعرض تفاصيل الفاتورة
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('نقدي');
   const [paymentNotes, setPaymentNotes] = useState('');
@@ -4422,12 +4407,9 @@ const Deferred = () => {
     try {
       const response = await axios.get(`${API}/invoices`);
       const invoices = response.data.filter(invoice =>
-        // يجب أن تكون الفاتورة آجلة أو لها مبلغ مستحق
-        (invoice.payment_method === 'آجل' || invoice.remaining_amount > 0) &&
-        (invoice.status === 'غير مدفوعة' ||
-          invoice.status === 'مدفوعة جزئياً' ||
-          invoice.status === 'انتظار' ||
-          invoice.remaining_amount > 0)
+        // يجب أن تكون الفاتورة آجلة ولها مبلغ مستحق أكبر من صفر
+        invoice.payment_method === 'آجل' && 
+        invoice.remaining_amount > 0
       );
       setUnpaidInvoices(invoices);
     } catch (error) {
@@ -4673,10 +4655,10 @@ const Deferred = () => {
                   <td className="border border-gray-300 p-2">
                     <div className="flex space-x-2 space-x-reverse">
                       <button
-                        onClick={() => setSelectedInvoice(invoice)}
+                        onClick={() => setViewingInvoice(invoice)}
                         className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
                       >
-                        عرض الدفعات
+                        عرض الفاتورة
                       </button>
                       <button
                         onClick={() => setSelectedInvoice(invoice)}
@@ -4720,6 +4702,141 @@ const Deferred = () => {
           </div>
         </div>
       </div>
+
+      {/* نافذة عرض تفاصيل الفاتورة */}
+      {viewingInvoice && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setViewingInvoice(null)}>
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-blue-600">📄 تفاصيل الفاتورة</h2>
+              <button 
+                onClick={() => setViewingInvoice(null)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {/* معلومات الفاتورة الأساسية */}
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded">
+                <div>
+                  <p className="text-sm text-gray-600">رقم الفاتورة</p>
+                  <p className="font-bold">{viewingInvoice.invoice_number}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">التاريخ</p>
+                  <p className="font-bold">{new Date(viewingInvoice.date).toLocaleDateString('ar-EG')}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">العميل</p>
+                  <p className="font-bold">{viewingInvoice.customer_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">المشرف</p>
+                  <p className="font-bold">{viewingInvoice.supervisor_name || '-'}</p>
+                </div>
+                {viewingInvoice.invoice_title && (
+                  <div className="col-span-2">
+                    <p className="text-sm text-gray-600">عنوان الفاتورة</p>
+                    <p className="font-bold">{viewingInvoice.invoice_title}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* المنتجات */}
+              <div>
+                <h3 className="font-bold mb-2">📦 المنتجات</h3>
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border p-2">المنتج</th>
+                      <th className="border p-2">المقاس</th>
+                      <th className="border p-2">الكمية</th>
+                      <th className="border p-2">السعر</th>
+                      <th className="border p-2">الإجمالي</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewingInvoice.items?.map((item, index) => (
+                      <tr key={index}>
+                        <td className="border p-2">
+                          {item.product_type === 'local' 
+                            ? item.product_name 
+                            : `${item.seal_type || ''} - ${item.material_type || ''}`}
+                        </td>
+                        <td className="border p-2">
+                          {item.product_type === 'local' 
+                            ? '-' 
+                            : `${item.inner_diameter || 0}×${item.outer_diameter || 0}×${item.height || 0}`}
+                        </td>
+                        <td className="border p-2 text-center">{item.quantity}</td>
+                        <td className="border p-2">{currency} {item.unit_price?.toFixed(2)}</td>
+                        <td className="border p-2">{currency} {item.total_price?.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* الملخص المالي */}
+              <div className="bg-blue-50 p-4 rounded">
+                <h3 className="font-bold mb-2">💰 الملخص المالي</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>الإجمالي قبل الخصم:</span>
+                    <span className="font-bold">{currency} {viewingInvoice.subtotal?.toFixed(2) || viewingInvoice.total_amount?.toFixed(2)}</span>
+                  </div>
+                  {viewingInvoice.discount > 0 && (
+                    <div className="flex justify-between text-red-600">
+                      <span>الخصم:</span>
+                      <span className="font-bold">- {currency} {viewingInvoice.discount?.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>الإجمالي:</span>
+                    <span className="font-bold">{currency} {viewingInvoice.total_amount?.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-green-600">
+                    <span>المدفوع:</span>
+                    <span className="font-bold">{currency} {viewingInvoice.paid_amount?.toFixed(2) || '0.00'}</span>
+                  </div>
+                  <div className="flex justify-between text-red-600 font-bold text-lg col-span-2 border-t pt-2 mt-2">
+                    <span>المستحق:</span>
+                    <span>{currency} {viewingInvoice.remaining_amount?.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ملاحظات */}
+              {viewingInvoice.notes && (
+                <div className="bg-yellow-50 p-4 rounded">
+                  <h3 className="font-bold mb-2">📝 ملاحظات</h3>
+                  <p>{viewingInvoice.notes}</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-4 flex justify-end space-x-2 space-x-reverse">
+              <button
+                onClick={() => {
+                  setSelectedInvoice(viewingInvoice);
+                  setViewingInvoice(null);
+                }}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              >
+                💳 دفع الآن
+              </button>
+              <button
+                onClick={() => setViewingInvoice(null)}
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -5221,12 +5338,19 @@ const Invoices = () => {
   const fetchInvoices = async () => {
     try {
       console.log('Fetching invoices...');
-      const response = await axios.get(`${API}/invoices`);
-      console.log('Invoices fetched:', response.data.length, 'invoices');
-      setInvoices(response.data);
+      // Use optimized summary API for list view
+      const response = await axios.get(`${API}/invoices-summary?limit=500`);
+      console.log('Invoices fetched:', response.data.invoices?.length || 0, 'invoices');
+      setInvoices(response.data.invoices || []);
     } catch (error) {
       console.error('Error fetching invoices:', error);
-      alert('خطأ في تحميل الفواتير: ' + (error.response?.data?.detail || error.message));
+      // Fallback to full API if summary fails
+      try {
+        const fallback = await axios.get(`${API}/invoices`);
+        setInvoices(fallback.data);
+      } catch (e) {
+        alert('خطأ في تحميل الفواتير: ' + (error.response?.data?.detail || error.message));
+      }
     }
   };
 
@@ -7373,18 +7497,9 @@ const SettleAccount = () => {
 
   const fetchCustomerInvoices = async (customerId) => {
     try {
-      const response = await axios.get(`${API}/invoices`);
-      const customer = customers.find(c => c.id === customerId);
-
-      if (customer) {
-        const customerInvoices = response.data.filter(inv =>
-          inv.customer_name === customer.name &&
-          inv.payment_method === 'آجل' &&
-          inv.remaining_amount > 0
-        ).sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date ascending
-
-        setDeferredInvoices(customerInvoices);
-      }
+      // Use optimized API that returns only deferred invoices for this customer
+      const response = await axios.get(`${API}/customers/${customerId}/deferred-invoices`);
+      setDeferredInvoices(response.data || []);
     } catch (error) {
       console.error('Error fetching invoices:', error);
     }
@@ -7816,8 +7931,8 @@ const WorkOrders = () => {
 
   const fetchInvoices = async () => {
     try {
-      const response = await axios.get(`${API}/invoices`);
-      setInvoices(response.data);
+      const response = await axios.get(`${API}/invoices-summary?limit=500`);
+      setInvoices(response.data.invoices || []);
     } catch (error) {
       console.error('Error fetching invoices:', error);
     }
@@ -10751,16 +10866,21 @@ const CustomerHub = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await axios.get(`${API}/customers`);
-      const sorted = (response.data || []).sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+      // Fetch customers and balances in parallel - OPTIMIZED
+      const [customersRes, balancesRes] = await Promise.all([
+        axios.get(`${API}/customers`),
+        axios.get(`${API}/customers-balances`)
+      ]);
+      
+      const sorted = (customersRes.data || []).sort((a, b) => a.name.localeCompare(b.name, 'ar'));
       setCustomers(sorted);
-      // Fetch balances
+      
+      // Map balances by customer ID using customer name
       const balObj = {};
+      const balancesByName = balancesRes.data || {};
       for (const c of sorted) {
-        try {
-          const bRes = await axios.get(`${API}/customers/${c.id}/balance`);
-          balObj[c.id] = bRes.data;
-        } catch { balObj[c.id] = { total_debt: 0, unpaid_invoices_count: 0 }; }
+        const nameBalance = balancesByName[c.name];
+        balObj[c.id] = nameBalance || { total_debt: 0, unpaid_invoices_count: 0 };
       }
       setBalances(balObj);
     } catch (error) { console.error('Error:', error); }
@@ -10797,10 +10917,14 @@ const CustomerHub = () => {
   };
 
   const saveEdit = async () => {
-    const dataToSend = editDataRef.current;
     try {
-      await axios.put(`${API}/customers/${selectedCustomerId}`, dataToSend);
-      alert('تم تحديث بيانات العميل ✅');
+      const response = await axios.put(`${API}/customers/${selectedCustomerId}`, editData);
+      if (response.data.merged) {
+        alert(response.data.message);
+        setSelectedCustomerId(response.data.target_customer_id);
+      } else {
+        alert('تم تحديث بيانات العميل ✅');
+      }
       setEditingId(null);
       fetchCustomers();
     } catch (error) { alert('خطأ: ' + (error.response?.data?.detail || error.message)); }
@@ -10873,13 +10997,9 @@ const CustomerHub = () => {
   // === SETTLEMENT TAB ===
   const fetchCustomerInvoices = async (customerId) => {
     try {
-      const response = await axios.get(`${API}/invoices`);
-      const customer = customers.find(c => c.id === customerId);
-      if (customer) {
-        const inv = response.data.filter(i => i.customer_name === customer.name && i.payment_method === 'آجل' && i.remaining_amount > 0)
-          .sort((a, b) => new Date(a.date) - new Date(b.date));
-        setDeferredInvoices(inv);
-      }
+      // Use optimized API that returns only deferred invoices for this customer
+      const response = await axios.get(`${API}/customers/${customerId}/deferred-invoices`);
+      setDeferredInvoices(response.data || []);
     } catch (error) { console.error('Error:', error); }
   };
 
@@ -11347,7 +11467,7 @@ const Pricing = () => {
   const [materialPricings, setMaterialPricings] = useState([]);
   const [editingPricing, setEditingPricing] = useState(null);
   const [newPricing, setNewPricing] = useState({
-    material_type: 'NBR',
+    material_type: 'BUR',
     inner_diameter: '',
     outer_diameter: '',
     price_per_mm: '',
@@ -11357,7 +11477,7 @@ const Pricing = () => {
     notes: ''
   });
 
-  const materialTypes = ['NBR', 'BUR', 'BT', 'VT', 'BOOM'];
+  const materialTypes = ['BUR', 'NBR', 'BT', 'VT', 'BOOM'];
 
   useEffect(() => {
     fetchMaterialPricings();
@@ -11408,7 +11528,7 @@ const Pricing = () => {
 
       fetchMaterialPricings();
       setNewPricing({
-        material_type: 'NBR',
+        material_type: 'BUR',
         inner_diameter: '',
         outer_diameter: '',
         price_per_mm: '',
@@ -11455,7 +11575,7 @@ const Pricing = () => {
   const cancelEdit = () => {
     setEditingPricing(null);
     setNewPricing({
-      material_type: 'NBR',
+      material_type: 'BUR',
       inner_diameter: '',
       outer_diameter: '',
       price_per_mm: '',

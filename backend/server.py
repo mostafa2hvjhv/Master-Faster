@@ -5496,7 +5496,8 @@ async def settle_customer_account(
     customer_id: str,
     amount_paid: float,
     payment_method: str,
-    username: str = None
+    username: str = None,
+    company_id: str = "elsawy"
 ):
     """Settle customer account by distributing payment across deferred invoices from oldest to newest"""
     try:
@@ -5513,7 +5514,8 @@ async def settle_customer_account(
         deferred_invoices = await db.invoices.find({
             "customer_name": customer["name"],
             "payment_method": "آجل",
-            "remaining_amount": {"$gt": 0}
+            "remaining_amount": {"$gt": 0},
+            "company_id": company_id
         }).sort("date", 1).to_list(length=None)  # Sort by date ascending (oldest first)
         
         if not deferred_invoices:
@@ -5561,8 +5563,9 @@ async def settle_customer_account(
             )
             
             # Create payment record
+            payment_id = str(uuid.uuid4())
             payment_record = {
-                "id": str(uuid.uuid4()),
+                "id": payment_id,
                 "invoice_id": invoice["id"],
                 "invoice_number": invoice.get("invoice_number"),
                 "customer_name": customer["name"],
@@ -5570,26 +5573,35 @@ async def settle_customer_account(
                 "payment_method": payment_method,
                 "date": datetime.now(timezone.utc).isoformat(),
                 "settled_by": username or "unknown",
-                "company_id": "elsawy"
+                "company_id": company_id
             }
             await db.payments.insert_one(payment_record)
             payment_records.append(payment_record)
             
-            # Create treasury transaction for this payment
-            account_id = payment_method_mapping.get(payment_method)
-            if account_id:
-                treasury_transaction = TreasuryTransaction(
-                    account_id=account_id,
-                    transaction_type="income",
-                    amount=payment_for_this_invoice,
-                    description=f"تصفية حساب - فاتورة {invoice.get('invoice_number')} - {customer['name']}",
-                    reference=f"settlement-{invoice.get('invoice_number')}",
-                    balance=payment_for_this_invoice
-                )
-                # IMPORTANT: Add company_id to treasury transaction
-                treasury_dict = treasury_transaction.dict()
-                treasury_dict["company_id"] = "elsawy"
-                await db.treasury_transactions.insert_one(treasury_dict)
+            # Create treasury transaction for this payment (income to payment account)
+            account_id = payment_method_mapping.get(payment_method, "cash")
+            treasury_transaction = TreasuryTransaction(
+                account_id=account_id,
+                transaction_type="income",
+                amount=payment_for_this_invoice,
+                description=f"تصفية حساب - فاتورة {invoice.get('invoice_number')} - {customer['name']}",
+                reference=f"settlement_{payment_id}"
+            )
+            treasury_dict = treasury_transaction.dict()
+            treasury_dict["company_id"] = company_id
+            await db.treasury_transactions.insert_one(treasury_dict)
+            
+            # Also create a deduction from deferred account (matching create_payment behavior)
+            deferred_transaction = TreasuryTransaction(
+                account_id="deferred",
+                transaction_type="expense",
+                amount=payment_for_this_invoice,
+                description=f"تسديد آجل - تصفية حساب فاتورة {invoice.get('invoice_number')} - {customer['name']}",
+                reference=f"settlement_{payment_id}_deferred"
+            )
+            deferred_dict = deferred_transaction.dict()
+            deferred_dict["company_id"] = company_id
+            await db.treasury_transactions.insert_one(deferred_dict)
             
             # Track paid invoice
             paid_invoices.append({

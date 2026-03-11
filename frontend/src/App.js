@@ -4408,7 +4408,7 @@ const Deferred = () => {
       const response = await axios.get(`${API}/invoices`);
       const invoices = response.data.filter(invoice =>
         // يجب أن تكون الفاتورة آجلة ولها مبلغ مستحق أكبر من صفر
-        invoice.payment_method === 'آجل' && 
+        invoice.payment_method === 'آجل' &&
         invoice.remaining_amount > 0
       );
       setUnpaidInvoices(invoices);
@@ -4709,14 +4709,14 @@ const Deferred = () => {
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-blue-600">📄 تفاصيل الفاتورة</h2>
-              <button 
+              <button
                 onClick={() => setViewingInvoice(null)}
                 className="text-gray-500 hover:text-gray-700 text-2xl"
               >
                 ✕
               </button>
             </div>
-            
+
             <div className="space-y-4">
               {/* معلومات الفاتورة الأساسية */}
               <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded">
@@ -4761,13 +4761,13 @@ const Deferred = () => {
                     {viewingInvoice.items?.map((item, index) => (
                       <tr key={index}>
                         <td className="border p-2">
-                          {item.product_type === 'local' 
-                            ? item.product_name 
+                          {item.product_type === 'local'
+                            ? item.product_name
                             : `${item.seal_type || ''} - ${item.material_type || ''}`}
                         </td>
                         <td className="border p-2">
-                          {item.product_type === 'local' 
-                            ? '-' 
+                          {item.product_type === 'local'
+                            ? '-'
                             : `${item.inner_diameter || 0}×${item.outer_diameter || 0}×${item.height || 0}`}
                         </td>
                         <td className="border p-2 text-center">{item.quantity}</td>
@@ -4816,7 +4816,7 @@ const Deferred = () => {
                 </div>
               )}
             </div>
-            
+
             <div className="mt-4 flex justify-end space-x-2 space-x-reverse">
               <button
                 onClick={() => {
@@ -5601,18 +5601,26 @@ const Invoices = () => {
     requestPasswordFor('cancel', invoiceId);
   };
 
-  const startEditInvoice = (invoice) => {
-    setEditingInvoice(invoice.id);
-    setEditForm({
-      invoice_title: invoice.invoice_title || '',
-      supervisor_name: invoice.supervisor_name || '',
-      customer_name: invoice.customer_name || '',
-      payment_method: invoice.payment_method || 'نقدي',
-      discount_type: invoice.discount_type || 'amount',
-      discount_value: invoice.discount_value || 0,
-      items: invoice.items || [],
-      notes: invoice.notes || ''
-    });
+  const startEditInvoice = async (invoice) => {
+    try {
+      // Fetch full invoice data (summary endpoint doesn't include items)
+      const response = await axios.get(`${API}/invoices/${invoice.id}`);
+      const fullInvoice = response.data;
+      setEditingInvoice(fullInvoice.id);
+      setEditForm({
+        invoice_title: fullInvoice.invoice_title || '',
+        supervisor_name: fullInvoice.supervisor_name || '',
+        customer_name: fullInvoice.customer_name || '',
+        payment_method: fullInvoice.payment_method || 'نقدي',
+        discount_type: fullInvoice.discount_type || 'amount',
+        discount_value: fullInvoice.discount_value || 0,
+        items: fullInvoice.items || [],
+        notes: fullInvoice.notes || ''
+      });
+    } catch (error) {
+      console.error('Error fetching invoice details:', error);
+      alert('حدث خطأ في تحميل بيانات الفاتورة');
+    }
   };
 
   const cancelEdit = () => {
@@ -5717,6 +5725,19 @@ const Invoices = () => {
   };
 
   const printInvoice = async (invoice) => {
+    // Fetch full invoice data if items are missing (summary endpoint doesn't include items)
+    let fullInvoice = invoice;
+    if (!invoice.items) {
+      try {
+        const invoiceResponse = await axios.get(`${API}/invoices/${invoice.id}`);
+        fullInvoice = invoiceResponse.data;
+      } catch (error) {
+        console.error('Error fetching invoice for print:', error);
+        alert('حدث خطأ في تحميل بيانات الفاتورة للطباعة');
+        return;
+      }
+    }
+
     // Fetch company settings
     let s = {};
     try {
@@ -5863,20 +5884,20 @@ const Invoices = () => {
             <img src="${logoUrl}" 
                  alt="Logo" 
                  style="max-width: 120px; max-height: 80px; margin-bottom: 10px;">
-            <div class="invoice-title">${isEn ? (invoice.invoice_title === 'فاتورة' ? 'Invoice' : invoice.invoice_title === 'عرض سعر' ? 'Quotation' : invoice.invoice_title || 'Quotation') : (invoice.invoice_title || 'عرض سعر')}</div>
-            <div class="invoice-number">${invoice.invoice_number}</div>
+            <div class="invoice-title">${isEn ? (fullInvoice.invoice_title === 'فاتورة' ? 'Invoice' : fullInvoice.invoice_title === 'عرض سعر' ? 'Quotation' : fullInvoice.invoice_title || 'Quotation') : (fullInvoice.invoice_title || 'عرض سعر')}</div>
+            <div class="invoice-number">${fullInvoice.invoice_number}</div>
           </div>
         </div>
 
         <!-- Customer and Date Info -->
         <div class="customer-info">
           <div class="customer-details">
-            <p><strong>${isEn ? 'To:' : 'السادة:'}</strong> ${invoice.customer_name}</p>
-            <p><strong>${isEn ? 'Address:' : 'العنوان:'}</strong> ${invoice.customer_address || '........................'}</p>
+            <p><strong>${isEn ? 'To:' : 'السادة:'}</strong> ${fullInvoice.customer_name}</p>
+            <p><strong>${isEn ? 'Address:' : 'العنوان:'}</strong> ${fullInvoice.customer_address || '........................'}</p>
           </div>
           <div class="date-info">
-            <p><strong>${isEn ? 'Date:' : 'تحرير في:'}</strong> ${isEn ? new Date(invoice.date).toLocaleDateString('en-GB') : new Date(invoice.date).toLocaleDateString('ar-EG')}</p>
-            ${isEn ? '' : `<p><strong>Date:</strong> ${new Date(invoice.date).toLocaleDateString('en-GB')}</p>`}
+            <p><strong>${isEn ? 'Date:' : 'تحرير في:'}</strong> ${isEn ? new Date(fullInvoice.date).toLocaleDateString('en-GB') : new Date(fullInvoice.date).toLocaleDateString('ar-EG')}</p>
+            ${isEn ? '' : `<p><strong>Date:</strong> ${new Date(fullInvoice.date).toLocaleDateString('en-GB')}</p>`}
           </div>
         </div>
 
@@ -5892,7 +5913,7 @@ const Invoices = () => {
             </tr>
           </thead>
           <tbody>
-            ${invoice.items.map((item, index) => `
+            ${fullInvoice.items.map((item, index) => `
               <tr>
                 <td>${index + 1}</td>
                 <td>${item.quantity}</td>
@@ -5908,7 +5929,7 @@ const Invoices = () => {
               </tr>
             `).join('')}
             <!-- Empty rows for additional items -->
-            ${Array.from({ length: Math.max(0, 8 - invoice.items.length) }, (_, i) => `
+            ${Array.from({ length: Math.max(0, 8 - fullInvoice.items.length) }, (_, i) => `
               <tr style="height: 40px;">
                 <td></td>
                 <td></td>
@@ -5923,22 +5944,22 @@ const Invoices = () => {
         <!-- Total Section -->
         <div class="total-section">
           <div style="text-align: ${isEn ? 'right' : 'left'}; margin-bottom: 10px;">
-            ${invoice.subtotal ? `
+            ${fullInvoice.subtotal ? `
               <div style="margin-bottom: 5px;">
-                <span>${isEn ? 'Subtotal' : 'المجموع الفرعي'}: ${cur} ${invoice.subtotal.toFixed(2)}</span>
+                <span>${isEn ? 'Subtotal' : 'المجموع الفرعي'}: ${cur} ${fullInvoice.subtotal.toFixed(2)}</span>
               </div>
             ` : ''}
-            ${invoice.discount && invoice.discount > 0 ? `
+            ${fullInvoice.discount && fullInvoice.discount > 0 ? `
               <div style="margin-bottom: 5px; color: #d32f2f;">
-                <span>${isEn ? 'Discount' : 'الخصم'}: - ${cur} ${invoice.discount.toFixed(2)}</span>
-                ${invoice.discount_type === 'percentage' && invoice.discount_value ?
-          ` <small>(${invoice.discount_value}%)</small>` : ''}
+                <span>${isEn ? 'Discount' : 'الخصم'}: - ${cur} ${fullInvoice.discount.toFixed(2)}</span>
+                ${fullInvoice.discount_type === 'percentage' && fullInvoice.discount_value ?
+          ` <small>(${fullInvoice.discount_value}%)</small>` : ''}
               </div>
               <hr style="margin: 5px 0; border: 1px solid #000;">
             ` : ''}
           </div>
           <div class="total-amount">
-            ${isEn ? 'Grand Total' : 'الإجمالي النهائي'}: ${cur} ${(invoice.total_after_discount || invoice.total_amount).toFixed(2)}
+            ${isEn ? 'Grand Total' : 'الإجمالي النهائي'}: ${cur} ${(fullInvoice.total_after_discount || fullInvoice.total_amount).toFixed(2)}
           </div>
         </div>
 
@@ -10871,10 +10892,10 @@ const CustomerHub = () => {
         axios.get(`${API}/customers`),
         axios.get(`${API}/customers-balances`)
       ]);
-      
+
       const sorted = (customersRes.data || []).sort((a, b) => a.name.localeCompare(b.name, 'ar'));
       setCustomers(sorted);
-      
+
       // Map balances by customer ID using customer name
       const balObj = {};
       const balancesByName = balancesRes.data || {};

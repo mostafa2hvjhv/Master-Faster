@@ -114,21 +114,46 @@ async def delete_user(user_id: str):
 # Dashboard endpoints
 @router.get("/dashboard/stats")
 async def get_dashboard_stats(company_id: str = "elsawy"):
-    # Get totals from database
+    from cache import cache_get, cache_set
+    
+    cache_key = f"dashboard:{company_id}"
+    cached = cache_get(cache_key, ttl=30)
+    if cached:
+        return cached
+    
     cf = {"company_id": company_id}
-    invoices = list(await db.invoices.find(cf).to_list(1000))
-    expenses = list(await db.expenses.find(cf).to_list(1000))
-    customers = list(await db.customers.find(cf).to_list(1000))
     
-    total_sales = sum(invoice.get("total_amount", 0) for invoice in invoices)
-    total_expenses = sum(expense.get("amount", 0) for expense in expenses)
-    total_unpaid = sum(invoice.get("remaining_amount", 0) for invoice in invoices if invoice.get("remaining_amount", 0) > 0)
+    # Use aggregation instead of fetching all documents
+    invoice_stats = await db.invoices.aggregate([
+        {"$match": cf},
+        {"$group": {
+            "_id": None,
+            "total_sales": {"$sum": "$total_amount"},
+            "total_unpaid": {"$sum": {
+                "$cond": [{"$gt": ["$remaining_amount", 0]}, "$remaining_amount", 0]
+            }},
+            "count": {"$sum": 1}
+        }}
+    ]).to_list(1)
     
-    return {
-        "total_sales": total_sales,
-        "total_expenses": total_expenses,
-        "net_profit": total_sales - total_expenses,
-        "total_unpaid": total_unpaid,
-        "invoice_count": len(invoices),
-        "customer_count": len(customers)
+    expense_stats = await db.expenses.aggregate([
+        {"$match": cf},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+    ]).to_list(1)
+    
+    customer_count = await db.customers.count_documents(cf)
+    
+    inv = invoice_stats[0] if invoice_stats else {"total_sales": 0, "total_unpaid": 0, "count": 0}
+    exp = expense_stats[0] if expense_stats else {"total": 0}
+    
+    result = {
+        "total_sales": inv.get("total_sales", 0),
+        "total_expenses": exp.get("total", 0),
+        "net_profit": inv.get("total_sales", 0) - exp.get("total", 0),
+        "total_unpaid": inv.get("total_unpaid", 0),
+        "invoice_count": inv.get("count", 0),
+        "customer_count": customer_count
     }
+    
+    cache_set(cache_key, result)
+    return result

@@ -9,8 +9,6 @@ from models import (
 from typing import List
 from datetime import datetime, timezone
 import uuid
-import pandas as pd
-import io
 
 router = APIRouter()
 
@@ -832,6 +830,8 @@ async def check_inventory_availability(
 async def import_inventory_excel(file: UploadFile = File(...), company_id: str = "elsawy"):
     """Import inventory items from Excel file"""
     try:
+        import pandas as pd
+        import io
         if not file.filename.endswith(('.xlsx', '.xls')):
             raise HTTPException(status_code=400, detail="يجب أن يكون الملف من نوع Excel (.xlsx أو .xls)")
         
@@ -903,6 +903,8 @@ async def import_inventory_excel(file: UploadFile = File(...), company_id: str =
 async def export_inventory_excel():
     """Export inventory items to Excel file"""
     try:
+        import pandas as pd
+        import io
         # Get all inventory items
         items = await db.inventory_items.find({}).to_list(None)
         
@@ -966,6 +968,8 @@ async def export_inventory_excel():
 async def import_raw_materials_excel(file: UploadFile = File(...), company_id: str = "elsawy"):
     """Import raw materials from Excel file"""
     try:
+        import pandas as pd
+        import io
         if not file.filename.endswith(('.xlsx', '.xls')):
             raise HTTPException(status_code=400, detail="يجب أن يكون الملف من نوع Excel (.xlsx أو .xls)")
         
@@ -1014,6 +1018,8 @@ async def import_raw_materials_excel(file: UploadFile = File(...), company_id: s
 async def export_raw_materials_excel():
     """Export raw materials to Excel file"""
     try:
+        import pandas as pd
+        import io
         # Get all raw materials
         materials = await db.raw_materials.find({}).to_list(None)
         

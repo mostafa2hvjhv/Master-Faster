@@ -1,5 +1,6 @@
 from fastapi import FastAPI, APIRouter
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from database import db, client, logger, BACKUP_TEMP_DIR, GDRIVE_ENABLED
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -32,6 +33,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# GZip compression — reduces response size by 60-80%
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # Include all route modules with /api prefix
 app.include_router(auth_router, prefix="/api")
